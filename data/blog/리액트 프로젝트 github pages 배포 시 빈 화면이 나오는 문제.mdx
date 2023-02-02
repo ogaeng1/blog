@@ -1,0 +1,69 @@
+---
+title: React 프로젝트 github pages 배포 시 빈 화면이 나오는 문제..
+date: '2023-02-03'
+tags: ['React', '끄적끄적', '에러']
+draft: false
+summary: 'gh-pages 배포 시 겪었던 문제'
+---
+
+간단한 프로젝트를 만든 후 gh-pages 로 배포하는 과정에서 겪은 문제들을 기록했습니다.
+
+### 1. 배포 후 사이트 접속 시 빈 화면(흰색 화면)이 나타나는 경우
+
+![](/static/images/white.PNG)
+
+로컬 환경에선 잘 나오던 요소들이 배포된 사이트로 접속하면 빈 화면이 출력되었다.
+
+원인은 바로 react-router-dom 의 BrowserRouter 였다.
+
+![](/static/images/router.PNG)
+
+gh-pages에서 배포 할 경우 BrowserRouter를 사용하면 화면이 안나올 수 있다고 한다.
+따라서 gh-pages 에서는 BrowserRouter 대신 HashRouter 사용을 권장하는 것 같다.
+
+![](/static/images/hash.PNG)
+
+basename을 사용해 기본 URL을 제공함으로써 "/"가 아닌 레포지토리 주소로 이동하라는 의미를 가지고 있다.
+HashRouter를 사용하면 URL에 #가 붙는걸 볼 수 있는데 이것을 없애는 방법이 있나?
+조금 더 찾아봐야겠다..
+
+### 2. 이미지가 안보이는 경우(액박뜨는 경우)
+
+HashRouter를 통해 화면이 나타났지만 프로젝트에 사용한 이미지가 액박으로 인해
+보이지 않은 상황이 발생했다.
+
+![](/static/images/empty.PNG)
+
+이 문제는 파일 경로에 문제가 있었다.
+
+```js
+<img src="./images/premier.jpg alt="" />
+```
+
+이런식으로 작성했을때 로컬환경에선 잘 나타나지만
+gh-pages에서는 보이지 않는다.
+경로앞에 "/"가 붙으면 절대경로, 즉 프로젝트의 가장 최상단 디렉토리의 경로를
+가리키게 된다.
+
+그러면 이미지 경로가
+
+```
+http://ogaeng1.github.io/images/premier.jpg
+```
+
+이렇게 된다.
+
+원래는 내가 배포한 레포지토리 안에 있는 images 라는 폴더에 있는 이미지를
+찾아야 하는데 위와 같은 코드는 단순히 images 폴더 안에서 찾고있기 때문에 경로를 읽을 수 없었던 것이다.
+
+html 파일과 같은 경로에 있는 images 폴더를 가리켜야 하기때문에
+
+```js
+<img src="images/premier.jpg" alt="" />
+```
+
+이렇게 코드를 변경했다. (사용된 이미지 태그 모두 변경하였습니다.) 그 결과는 ?
+
+![](/static/images/done.PNG)
+
+잘 나타나는걸 확인할 수 있다.
