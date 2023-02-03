@@ -1,0 +1,81 @@
+---
+title: 주관적인 tailwindcss 장단점
+date: '2023-02-04'
+tags: ['tailwindcss', '끄적끄적']
+draft: false
+summary: 'tailwindcss를 사용하며 느낀 장단점'
+---
+
+![](/static/images/tailwind.jpeg)
+
+tailwindcss를 사용해 보며 느낀 장단점을 작성했습니다.
+
+## 장점😄
+
+> 더 이상 클래스 네이밍 고민은 ❌
+
+![](/static/images/strength1.PNG)
+
+기존의 CSS에 의미있는 클래스명을 만들기 위해 고민할 필요가 없다.
+tailwindcss에서 정해놓은 클래스명을 가져다가 사용하기만 하면 끝이다.
+개인적으로 이게 가장 큰 장점이 아닐까 싶다.
+
+<br />
+
+> 쉬운 반응형 페이지 구현과 커스터마이징
+
+![](/static/images/responsive.PNG)
+
+나는 CSS를 잘하지 않기 때문에 기존에는 반응형 페이지 구현이 굉장히 어렵게 느껴졌다.
+하지만 tailwindcss는 거창한 CSS 작성없이 원하는 스타일에 맞는 클래스명을 적용만 시켜주면
+손쉽게 반응형 페이지를 구현할 수 있었다. 😲
+
+```js
+// tailwind.config.js
+
+module.export = {
+  content: ['./src/**/*.{js, jsx, ts, tsx}'],
+  theme: {
+    extend: {
+      animation: {
+        'spin-spinner': 'spin 1.5s linear infinite',
+      },
+    },
+  },
+  plugins: [],
+}
+```
+
+이런 식으로 기존의 애니메이션을 내가 원하는 대로 커스텀 해서 사용할 수도 있다.
+
+<br />
+
+> 컴포넌트마다 별도의 CSS 파일을 만들지 않아도 된다
+
+컴포넌트 별 CSS 파일을 만들 필요 없이 컴포넌트 안에서 HTML에 CSS만 작성하면 된다.
+(별도의 CSS파일이 필요없다는 점에선 styled-components와 같은 것 같다.)
+
+<br />
+
+## 단점 ☹
+
+> 코드 가독성
+
+![](/static/images/bad.PNG)
+
+온갖 클래스명들을 전부 HTML에 작성하기 때문에 스타일이 많이 들어갈수록 코드 가독성이 점점 떨어진다.
+
+<br />
+
+> 러닝커브
+
+tailwindcss는 정해진 클래스명을 사용해야 하기 때문에 어느정도의 학습이 필요하다. 자주 사용되는 클래스 정도는
+외우고 사용해야 빠른 작업이 가능하다. <br />
+만약 **CSS를 처음 공부하는 사람**이라면 tailwindcss는 절대 추천하지 않습니다...
+
+---
+
+## 총평😀
+
+개인적으로 정말 만족하며 사용했다. 작은 개인프로젝트를 하게 된다면 아마 적극적으로 사용하지 않을까 싶다.
+하지만 내가 CSS에 대한 지식이 부족하고 제대로 사용해 보지 않아서 단점보단 장점이 더 와닿았다.
