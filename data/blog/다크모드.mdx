@@ -1,0 +1,149 @@
+---
+title: 다크 모드를 만들어 보자(feat. SCSS)
+date: '2023-02-28'
+tags: ['React', 'SCSS']
+draft: false
+summary: 'SCSS를 활용해 다크 모드 만들기'
+---
+
+요즘 대부분의 웹 사이트들은 다크 모드를 지원하고 있다. 예전부터 한번 만들어 보고 싶었던 다크 모드 기능을 구현해 보았다.
+
+## 다크모드는 어떻게 만들까? 🤔
+
+다크 모드 만드는 방법에도 여러가지가 있었다. styled-components의 ThemeProvider를 활용하거나 <br />
+React의 ContextAPI를 사용하는 방법, 혹은 html root 엘리먼트의 data-theme 속성을 활용한 방법이 있었다.
+나는 html의 data-theme 방법을 선택했고, SCSS를 사용했다.
+
+<br />
+
+## SCSS? SASS? 🤔
+
+SASS는 css를 효율적으로 작성할 수 있도록 도와주는 전처리기다. 변수 정의를 허용하며, mixin, function 등 여러가지
+기능을 제공한다.
+
+<br />
+SCSS는 SASS의 3버전에서 등장한 언어다. css와 비슷한 구문을 가지고 있으며 css와 완전히 호환되도록 새로운
+구문을 도입한 css의 상위 호환 스타일시트다. 확장자 .sass 와 .scss는 다른 파일이다. 주의하자!
+<br />
+## 다크 모드를 만들어 보자
+
+```jsx
+// ModeToggle.tsx
+const ModeToggle = () => {
+  const [toggle, setToggle] = useState < boolean > false
+  const onToggleState = () => {
+    toggle
+      ? document.documentElement.setAttribute('data-theme', 'dark')
+      : document.documentElement.setAttribute('data-theme', 'light')
+    setToggle(!toggle)
+  }
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'light')
+    setToggle(true)
+  }, [])
+
+  return (
+    <div className="toggle-wrap">
+      {toggle ? (
+        <div className="toggle" onClick={onToggleState}>
+          <span>🌞</span>
+        </div>
+      ) : (
+        <div className="toggle" onClick={onToggleState}>
+          <span>🌜</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default ModeToggle
+```
+
+토글이 클릭될때 마다 값을 변경 시켜줄 useState를 만들고, setAttribute로 엘리먼트에 속성을 추가해 주었다.
+조건부 렌더링을 활용해 다크, 라이트 모드일때 ui도 각각 다르게 설정해 주었다.
+
+```css
+// utils.scss
+$light-bgColor: '#fff';
+$light-textColor: '#000';
+$light-resultPagination: '#c4d5dc';
+$light-bgToggleColor: '#d4dbe1';
+$light-borderColor: '#000';
+$light-scroll: '#1433cc';
+$light-keyword: '#1433cc';
+$light-marker: '#000';
+$light-listColor: '#fff';
+
+$dark-bgColor: '#171717';
+$dark-textColor: '#fff';
+$dark-resultPagination: '#414141';
+$dark-bgToggleColor: '#6EDC5F';
+$dark-borderColor: '#fff';
+$dark-scroll: '#242739';
+$dark-keyword: '#5b6fd2';
+$dark-marker: '#fff';
+$dark-listColor: '#535353';
+```
+
+컬러값을 변수로 세팅해 주었다.
+
+```css
+// theme.scss
+@import './utils.scss';
+
+html[data-theme='light'] {
+  --color-background: #{$light-bgColor};
+  --color-text: #{$light-textColor};
+  --color-pagination: #{$light-resultPagination};
+  --color-toggleBg: #{$light-bgToggleColor};
+  --color-border: #{$light-borderColor};
+  --color-scroll: #{$light-scroll};
+  --color-keywordColor: #{$light-keyword};
+  --color-marker: #{$light-marker};
+  --color-listColor: #{$light-listColor};
+}
+
+html[data-theme='dark'] {
+  --color-background: #{$dark-bgColor};
+  --color-text: #{$dark-textColor};
+  --color-pagination: #{$dark-resultPagination};
+  --color-toggleBg: #{$dark-bgToggleColor};
+  --color-border: #{$dark-borderColor};
+  --color-scroll: #{$dark-scroll};
+  --color-keywordColor: #{$dark-keyword};
+  --color-marker: #{$dark-marker};
+  --color-listColor: #{$dark-listColor};
+}
+```
+
+그다음 변수로 선언해 놓은 컬러값 파일을 import한 후 라이트 모드일 때와 다크 모드일 때를 각각 설정해 주었다.
+그리고 필요한 곳에 import를 한 뒤 변수를 사용하면 된다.
+
+```css
+.result-text {
+  width: 100%;
+  height: 10%;
+  font-size: 24px;
+  font-weight: bold;
+  padding: 10px;
+  background-color: var(--color-pagination);
+  display: flex;
+  align-items: center;
+  color: var(--color-text);
+}
+
+.result-keyword {
+  margin-right: 5px;
+  color: var(--color-keywordColor);
+}
+```
+
+간단하게 토글을 디자인 하고 결과를 확인해 보았다.
+
+![](/static/images/light.PNG)
+
+![](/static/images/dark.PNG)
+
+<br />잘 적용된 걸 확인할 수 있다.
