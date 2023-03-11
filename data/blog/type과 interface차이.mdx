@@ -1,0 +1,78 @@
+---
+title: type과 interface차이
+date: '2023-03-11'
+tags: ['TypeScript']
+draft: false
+summary: 'type과 interface의 차이가 뭘까'
+---
+
+타입스크립트에는 타입을 선언하는 방식이 두 가지 있다. type 키워드를 사용한 방식과 interface 키워드를 사용한 방식이다.
+type과 interface는 객체의 타입을 지정하는 방법이라는 점은 같지만 이 둘의 차이점에는 무엇이 있을까?
+
+## 1. 재선언
+
+interface에서는 동일한 이름을 갖는 interface를 중복해서 선언할 수 있다. <br />
+이러한 이유로 interface로 선언된 타입은 선언 이후 타입 확장에도 용이하다.
+
+```ts
+interface A {
+  a: string
+  b: string
+}
+
+interface A {
+  a: string
+  b: string
+  c: string
+}
+```
+
+type은 동일한 이름으로 type을 하면 에러가 발생한다.
+
+```ts
+type A = {
+  a: string
+  b: string
+}
+
+type A = {
+  a: string
+  b: string
+  c: string
+}
+
+//'A' is already defined. 에러 발생
+```
+
+<br />
+
+## 2. 상속
+
+interface는 extends 키워드를 사용하여 확장이 가능하다.
+
+```ts
+interface A {
+  a: string
+  b: string
+}
+
+interface AA extends A {
+  c: string
+}
+```
+
+type은 & 키드워를 사용하여 확장이 가능하다.
+
+```ts
+type A = {
+  a: string
+  b: string
+}
+
+type B = A & {
+  c: string
+}
+```
+
+공식 문서에서는 어떤 걸 사용해야 할지 모를 때 interface를 사용하고, type의 특성이 필요할 때만 type을
+사용하라고 한다. 아직 타입스크립트에 대한 공부가 부족해서 추후에 추가적인 공부 후 블로그 내용을 다시 수정하려 한다.
