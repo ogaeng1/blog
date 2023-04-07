@@ -1,0 +1,205 @@
+---
+title: 음악 플레이어 제작 중 발생했던 오류들
+date: '2023-04-04'
+tags: ['에러', 'React', 'TypeScript']
+draft: false
+summary: '제작 과정과 에러를 기록'
+---
+
+# 간단한 제작 과정
+
+리액트+타입스크립트를 사용해서 음악 플레이어를 만들어 보았습니다. <br />
+사용자가 음악 파일을 등록해서 사용하는게 아닌 미리 등록된 음악을 들을 수 있습니다. 사용자의 컴퓨터에 다운로드된 음악 파일이
+없다면 해당 사이트를 사용할 수 없기 때문에 미리 다운받은 음악 파일을 업로드해서 만들었습니다. <br />
+
+<br />
+
+# 현재 지원하는 기능
+
+1. 음악 재생, 일시정지, 다음 곡, 이전 곡
+2. 현재 노래의 진행 상황을 나타내는 프로그레스 바
+3. 프로그레스 바 원하는 부분 클릭 시 그 시점으로 건너뛰기
+
+<br />
+
+# 1. 다음 곡 재생이 정상적으로 작동하지 않은 현상
+
+```tsx
+const onNextSong = (e: React.MouseEvent<HTMLButtonElement>) => {
+  e.stopPropagation()
+  const nextIndex = currentSongIndex + 1
+  if (nextIndex >= musicData.length) {
+    setCurrentSongIndex(0)
+  } else {
+    setCurrentSongIndex(nextIndex)
+  }
+  setPlay(true)
+  audio.src = musicData[currentSongIndex].url
+  audio.play()
+}
+```
+
+onNextSong은 다음 곡으로 넘겼을때, 다음 곡이 존재하면 해당 곡을, 없으면
+다시 처음으로 돌아와 처음 곡을 실행 시키는 함수이다. 나는 코드상으로는 전혀 문제가 없을거라고 판단했었다.
+하지만 코드상 currentSongIndex를 업데이트 한 다음 곧 바로 audio.src를 업데이트 해주고 있는데 리액트에서 useState는
+비동기로 동작을 하기 때문에 audio.src = musicData[currentSongIndex].url; 코드에는 업데이트가 적용이 안된
+currentSongIndex이 사용된 걸로 판단 되었다. 이를 동기적으로 처리하기 위해 useEffect를 활용 했다.
+
+```tsx
+const onNextSong = (e: React.MouseEvent<HTMLButtonElement>) => {
+  e.stopPropagation()
+  const nextIndex = currentSongIndex + 1
+  if (nextIndex >= musicData.length) {
+    setCurrentSongIndex(0)
+  } else {
+    setCurrentSongIndex(nextIndex)
+  }
+  setPlay(true)
+}
+
+useEffect(() => {
+  audio.src = musicData[currentSongIndex].url
+  if (play) {
+    audio.play()
+  }
+}, [currentSongIndex])
+```
+
+다음과 같이 useEffect훅 안에 조건을 작성해 주었더니 해결할 수 있었다.
+
+## 2. Uncaught (in promise) DOMException: The play() request was interrupted by a new load request.
+
+다음 곡 버튼을 빠르게 연속으로 누르다 보면 콘솔에 찍히던 에러다. 이 오류는 audio 객체의 play() 메서드가
+호출된 후 새로운 load() 요청이 발생하여 play()요청이 중단된 경우에 발생한다고 한다.
+
+```tsx
+useEffect(() => {
+  audio.src = musicData[currentSongIndex].url
+  if (play) {
+    audio.play()
+  }
+}, [currentSongIndex])
+```
+
+노래가 재생 중일때 현재 노래의 인덱스가 바뀌면 자동으로 바뀐 인덱스의 음악을 실행 시켜주는 코드이다.
+play() 메서드를 호출하기 전 이 음악 파일이 실행 가능한 상태인지 확인하기 위해 체크하는 코드로 수정하였다.
+
+```tsx
+useEffect(() => {
+  audio.src = musicData[currentSongIndex].url
+  audio.addEventListener('canplaythrough', () => {
+    if (play) {
+      audio.play()
+    }
+  })
+}, [currentSongIndex])
+```
+
+"canplaythrough" 이벤트는 "사용자 에이전트가 미디어를 재생할 수 있을 때 시작되며 콘텐츠의 추가 버퍼링을 위해 중지할 필요 없이 미디어를 끝까지 재생하기에 충분한 데이터가 로드되었다고 추정합니다.
+
+이 이벤트는 취소할 수 없으며 버블링되지 않습니다." 라고 MDN 에 나와있다.
+useEffect 내부의 코드를 수정 후 다음 버튼을 빠르게 눌러도 더이상 에러가 출력되지 않은걸 확인할 수 있었다.
+
+## 3. Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+
+무슨 소린가 해서 구글 번역기를 돌려 보았다..
+
+최대 업데이트 깊이를 초과했습니다. 이는 구성 요소가 componentWillUpdate 또는 componentDidUpdate 내에서 setState를 반복적으로 호출할 때 발생할 수 있습니다. React는 무한 루프를 방지하기 위해 중첩 업데이트 수를 제한합니다.
+
+![](/static/images/err.PNG)
+
+원인 1. 함수 호출 방식
+
+```tsx
+<div className="playing-container">
+  <button onClick={onPrevSong}>
+    <TbPlayerTrackPrevFilled />
+  </button>
+  {play ? (
+    <button className="pause-button" onClick={onPause}>
+      <FaPause />
+    </button>
+  ) : (
+    <button className="play-button" onClick={onPlay}>
+      <FaPlay />
+    </button>
+  )}
+  <button onClick={onNextSong}>
+    <TbPlayerTrackNextFilled />
+  </button>
+</div>
+```
+
+onClick에 함수를 사용할 때, onClick 괄호 안에 "function()" 가 아닌 "function"의 방식으로 사용하라고 나와 있었다.
+하지만 나는 이미 "function" 방식으로 사용 하고 있었다.. 이 문제는 아닌듯 하다..
+
+원인 2. useEffect의 종속성 배열에서 변수를 업데이트하는 것
+useEffect훅은 업데이트되는 변수에 따라서 작업을 수행 할 수 있다.
+
+```tsx
+useEffect(() => {
+  audio.addEventListener('timeupdate', () => {
+    setCurrentTime(audio.currentTime)
+  })
+  audio.addEventListener('loadedmetadata', () => {
+    setDuration(audio.duration)
+  })
+  audio.addEventListener('ended', () => onNextSong())
+
+  if (audio.duration) {
+    setDuration(audio.duration)
+  }
+
+  const interval = setInterval(() => {
+    setCurrentTime(audio.currentTime)
+    setProgress(audio.currentTime / audio.duration)
+  }, 1000)
+
+  return () => {
+    clearInterval(interval)
+  }
+}, [audio])
+```
+
+위 코드는 현재 노래의 진행 상황을 나타내는 프로그레스 바의 코드가 포함된 일부인데, 에러를 유발하고 있다.
+
+## 내가 생각하는 문제점 🤔
+
+audio값, 즉 노래가 바뀌면 interval 함수가 실행되는데 1초마다 프로그레스 바의 상태를 나타낼 값들이
+바뀌고 있다. React에서 state값이 바뀌면 컴포넌트가 리렌더링이 된다. 이 때문에 무한루프에 빠진게 아닐까
+라는 생각을 해보았다. 관련 에러들을 찾아보던 중 useRef 훅이 눈에 들어왔다. useRef 훅은 값을 담거나
+요소에 접근하기 위해 사용하는 훅이다. useRef의 값이 변해도 렌더링이 발생하지 않기 때문에 useRef훅을 사용해
+코드를 변경했다. <a>참고 : https://iborymagic.tistory.com/96</a>
+
+```tsx
+const savedCallback = useRef<any>()
+
+const currentProgress = () => {
+  if (audio.duration) {
+    setDuration(audio.duration)
+  }
+  setCurrentTime(audio.currentTime)
+  setProgress(currentTime / duration)
+}
+
+useEffect(() => {
+  savedCallback.current = currentProgress
+})
+
+useEffect(() => {
+  const tick = () => {
+    savedCallback.current()
+  }
+  const timer = setInterval(tick, 1000)
+  return () => clearInterval(timer)
+}, [])
+```
+
+실행을 해보니 더이상 위와같은 에러는 발생하지 않았다. 이게 맞는 방법인지는 잘 모르겠지만 에러는 출력되지 않으니..
+
+## 총평😂
+
+간단한 프로젝트라도 직접 만들어보면 내가 몰랐던 부분도 알게 되고 공부가 많이 되었던것 같다. <br />
+시간이 되면 틈틈이 간단한 프로젝트를 만들어 보면 좋을 것 같다. <br />
+타입스크립트에서 any 타입을 사용하면 타입스크립트 이점이 사라지는데, 되도록이면 any 타입을 한번도 사용하지 않고
+제작해 보고 싶었으니 아직 실력 부족으로 인해 몇번 any 타입을 사용했다.. 공부가 더 필요한 것 같다.
