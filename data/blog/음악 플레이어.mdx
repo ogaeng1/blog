@@ -197,6 +197,73 @@ useEffect(() => {
 
 실행을 해보니 더이상 위와같은 에러는 발생하지 않았다. 이게 맞는 방법인지는 잘 모르겠지만 에러는 출력되지 않으니..
 
+## ++성능개선을 위한 코드 리팩토링 (04.08 내용 추가)
+
+대부분의 React 앱은 Webpack, Rollup 또는 Browserify와 같은 도구를 사용하여 여러 파일을 하나로 병합한
+“번들” 파일을 웹 페이지에 포함하여 한 번에 전체 앱을 로드한다고 한다. 하지만 앱이 커지면 번들 파일도 커지게 되고,
+결국 페이지 로드 시간에 영향을 미치게 된다. 이러한 문제를 방지하기 위해 코드 분할을 사용하여 번들을 “나누는” 것이 좋다.
+React에서 코드 분할은 애플리케이션의 성능을 향상시키기 위한 기술로, 큰 번들을 여러개의 작은 번들로 나누어 동적으로 로드할 수 있도록 해준다.
+
+React에서 코드 분할을 적용하는 방법 중 하나는 동적 import() 문법을 사용하는 것이다. React.lazy() 함수를
+사용하면 동적 import()를 사용하여 컴포넌트를 렌더링 할 수 있다.
+
+```tsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import PlayList from '../components/PlayList'
+import OftenPlayList from '../components/firstplaylist/OftenPlayList'
+
+const Router = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<PlayList />} />
+        <Route path="/often" element={<OftenPlayList />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+export default Router
+```
+
+기존에 작성된 코드이다. 위 코드 그대로 앱을 실행했을 때, 메인 컨텐츠가 있는 OftenPlayList 컴포넌트에 이동했을 시
+
+![](/static/images/1.PNG)
+
+해당 페이지 로딩 시간이 3.89s 가 걸리는걸 확인할 수 있다. 여기에 코드 분할을 적용하면 어떨까 ?
+
+```tsx
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Loading from '../components/Loading'
+
+const PlayList = lazy(() => import('../components/PlayList'))
+const OftenPlayList = lazy(() => import('../components/firstplaylist/OftenPlayList'))
+
+const Router = () => {
+  return (
+    <BrowserRouter>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/" element={<PlayList />} />
+          <Route path="/often" element={<OftenPlayList />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  )
+}
+
+export default Router
+```
+
+위와 같이 코드를 작성하고 다시한번 OftenPlayList 컴포넌트로 이동 해보자.
+
+![](/static/images/2.PNG)
+
+결과는 무려 1.13s 로 상당히 단축된걸 확인할 수 있다. 비록 현재 프로젝트는 크기가 작아서 수치상으로는 눈에 띄게
+로딩속도가 향상되었더라도, 확실히 로딩속도가 빨라진걸 못느끼는 정도일 수 있다. 하지만 프로젝트의 크기가 더 커진다면
+이처럼 성능 향상은 더욱더 중요한 작업이 될 것이다. Suspense와 lazy loading은 좀 더 공부해서 따로 글로 정리해 봐야겠다.
+
 ## 총평😂
 
 간단한 프로젝트라도 직접 만들어보면 내가 몰랐던 부분도 알게 되고 공부가 많이 되었던것 같다. <br />
