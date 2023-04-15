@@ -12,7 +12,7 @@ summary: '실전 프로젝트 개선하기..'
 
 # 실전 프로젝트 진행 중 성능 및 UX 개선
 
-1. 웹 페이지 렌더링 속도 개선
+## 1. 웹 페이지 렌더링 속도 개선
 
 프로젝트 특성 상 이미지가 많이 사용 됐습니다. 이미지는 고화질의 jpg, png 형식의 파일로 구성되었는데 고화질이다보니
 당연히 파일의 크기가 클 수 밖에 없었습니다. 크롬 LightHouse 성능 측정 결과 다음과 같은 결과가 나왔습니다.
@@ -89,7 +89,7 @@ LightHouse 성능을 측정해 보았습니다.
 
 <br />
 
-2. API 수동 호출
+## 2. API 수동 호출
 
 이 내용은 사용자의 피드백을 통해 개선된 문제입니다.
 
@@ -279,3 +279,131 @@ Geolocation API 를 수동호출로 변경 후 LightHouse 성능을 다시한번
 ![](/static/images/geo6.png)
 
 결과는 Best Practices 부분에서도 성능이 향상된 걸 확인할 수 있었습니다.
+
+## 3. 상태관리 코드 개선
+
+```jsx
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
+import axios from 'axios'
+
+export const __getProof = createAsyncThunk('GET_PROOF', async (_, thunkAPI) => {
+  try {
+    const { data } = await axios.get(`${process.env.REACT_APP_AXIOS_API}/api/photos`, {
+      headers: {
+        Authorization: sessionStorage.getItem('Access_Token'),
+      },
+    })
+    return thunkAPI.fulfillWithValue(data)
+  } catch (err) {
+    return thunkAPI.rejectWithValue(err)
+  }
+})
+
+export const __proofDelete = createAsyncThunk('DELETE_PROOF', async (payload, thunkAPI) => {
+  try {
+    const { data } = await axios.delete(`${process.env.REACT_APP_AXIOS_API}/api/photos/sakje`)
+    return thunkAPI.fulfillWithValue(data)
+  } catch (err) {
+    return thunkAPI.rejectWithValue(err)
+  }
+})
+
+const initialState = {
+  proofs: [],
+  isLoading: false,
+  filter: {
+    region: '',
+    name: '',
+  },
+}
+
+export const proofSlice = createSlice({
+  name: 'proofs',
+  initialState,
+  reducers: {},
+  extraReducers: {
+    [__getProof.fulfilled]: (state, action) => {
+      state.proofs = action.payload
+    },
+    [__getProof.rejected]: (state, action) => {},
+    [__proofFilter.fulfilled]: (state, action) => {
+      state.proofs = action.payload
+    },
+    [__proofDelete.fulfilled]: (state, action) => {
+      state.proofs = state.proof.filter((proof) => proof.certificationId !== action.payload)
+    },
+    [__proofDelete.rejected]: (state, action) => {
+      state.error = action.payload
+    },
+  },
+})
+
+export default proofSlice.reducer
+```
+
+인증페이지에 대한 store 파일을 예시로 들어보겠습니다. 상태관리 코드보단 API 통신 코드를 다루는 파일처럼 보여집니다.
+store 파일에선 상태관리만 할 수 있도록 서버의 데이터를 불러오는 코드는 따로 분리하였습니다.
+
+```jsx
+//proofSlice.js 파일
+
+import { createSlice } from '@reduxjs/toolkit'
+
+const initialState = {
+  proofs: [],
+  isLoading: false,
+  photo: '',
+  certificationId: '',
+  filterData: [],
+  filterButton: false,
+  filter: {
+    region: '',
+    name: '',
+  },
+}
+
+export const proofSlice = createSlice({
+  name: 'proofs',
+  initialState,
+  reducers: {
+    proofData: (state, { payload }) => {
+      state.filterData = payload
+    },
+    filterTrue: (state) => {
+      state.filterButton = true
+    },
+    filterFalse: (state) => {
+      state.filterButton = false
+    },
+  },
+  extraReducers: {},
+})
+
+export default proofSlice.reducer
+export const { proofData, filterTrue, filterFalse } = proofSlice.actions
+```
+
+```js
+//api.js
+
+import axios from "axios";
+
+...
+
+export const getProof = async () => {
+  const { data } = await axiosIns.get("/api/photos");
+  return data;
+};
+
+export const deleteProof = async (payload) => {
+  const { data } = await axiosIns.delete("/api/photos/sakje", {
+    data: { certificationId: payload.id, photo: payload.photo },
+  });
+  return data;
+};
+
+...
+```
+
+이렇게 클라이언트 상태와 서버 상태의 코드를 분리하여 가독성을 더 높이고 기존 store 파일은 상태관리만을 위한
+역할을 할 수 있게 변경하였습니다.
