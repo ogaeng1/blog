@@ -1,0 +1,73 @@
+---
+title: 제작 과정과 에러 기록
+date: '2023-05-13'
+tags: ['프론트엔드']
+draft: false
+summary: '제작 과정과 에러 기록'
+---
+
+## 1. Next.js 웹 스토리지 에러
+
+![](/static/images/err1.PNG)
+
+Next.js에서 서버 사이드 렌더링 시 발생하는 에러입니다. Next.js는 서버 사이드 렌더링을
+지원하기 때문에 컴포넌트가 서버에서 렌더링될 수 있습니다. 반면 웹 스토리지 객체는 브라우저에서만
+사용할 수 있기 때문에 서버에서 렌더링 될때 레퍼런스 에러를 발생 시켰습니다. 이러한 문제를 해결하기
+위해 해당 코드가 클라이언트에서만 실행될 수 있도록 useEffect 훅을 사용하여 변경 하였습니다.
+
+```tsx
+const [user, setUser] = useState<string | null>("");
+
+useEffect(() => {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+        setUser(sessionStorage.getItem("user"));
+    }
+}, []);
+
+if (user) {
+    return (
+        ....
+    )
+}
+
+```
+
+## 2. Firebase FireStore 데이터베이스 보안 규칙에러
+
+![](/static/images/err2.PNG)
+
+우선 파이어베이스 사용법을 잘 몰라 해맸던 에러입니다. 이 에러는 사용자가 데이터베이스에 접근하거나
+데이터를 읽거나 쓰려고 할 때 보안 규칙에 의해 허용되지 않을 경우 발생하는 에러입니다.
+
+```db
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+```
+
+기존의 보안 규칙에는 읽기와 쓰기 모두 거부 상태였습니다. 따라서 위 사진과 같이 게시글을 등록하려고 하면
+에러가 발생했습니다. Firebase 문서를 참조하여 보안 규칙을 수정하여 해결하였습니다. <br />
+firebase 문서 : https://firebase.google.com/docs/rules/rules-and-auth?hl=ko
+
+```db
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+  }
+}
+```
+
+해당 보안 규칙은 읽기는 모두에게 허용하고 쓰기(게시글 작성)는 인증된 유저만 가능하게 변경하였습니다.
+
+![](/static/images/suc1.PNG)
+
+보안 규칙 수정 후 정상적으로 등록한 게시글이 db에 잘 저장되는 모습입니다.
