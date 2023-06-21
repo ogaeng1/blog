@@ -1,0 +1,204 @@
+---
+title: 이벤트 전파(Event Propagation)
+date: '2023-06-20'
+tags: ['JavaScript']
+draft: false
+summary: '이벤트 전파란 무엇일까'
+---
+
+이벤트 전파(Event Propagation)는 이벤트가 DOM 트리에서 전달되는 방식을 의미합니다. 이벤트가 발생하면, 이벤트는
+해당 요소에서 시작하여 DOM 트리를 따라 부모 요소로 전달됩니다. 이 과정에서 이벤트는 캡처링(capturing), 타겟(target), 버블링(bubbling)
+단계를 거치게 됩니다.
+
+![](/static/images/events.svg)
+
+이미지 출처 : https://www.w3.org/TR/DOM-Level-3-Events/#dom-event-architecture
+
+자식 요소에서 발생한 이벤트가 부모 요소로 전달되는 것을 이벤트 버블링(Event Bubbling), 자식 요소에서 발생한
+이벤트가 부모 요소부터 시작하여 이벤트를 발생시킨 자식 요소까지 도달하는 것을 이벤트 캡처링(Event Capturing) 이라 하며,
+타겟 단계에서는 이벤트가 발생한 요소 자체에서 이벤트가 처리됩니다. 여기서 주의할점은
+버블링과 캡처링은 둘 중 하나만 발생하는 것이 아니라 캡처링부터 시작하여 버블링으로 종료된다는 점입니다.
+즉, 이벤트 발생 시 캡처링과 버블링은 순차적으로 발생합니다.
+
+## 이벤트 버블링(Event Bubbling)
+
+먼저 이벤트 버블링의 예시부터 살펴보겠습니다.
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div>div
+        <p>p
+            <span>span</span>
+        </p>
+    </div>
+</body>
+<script>
+    const div = document.querySelector("div");
+    const p = document.querySelector("p");
+    const span = document.querySelector("span");
+    
+    div.addEventListener("click", function() {
+        console.log("clicked div");
+    });
+
+    p.addEventListener("click", function() {
+        console.log("clicked p");
+    });
+
+    span.addEventListener("click", function() {
+        console.log("clicked span");
+    });
+</script>
+</html>
+```
+
+위 코드는 이벤트 흐름을 버블링만 감지합니다. span 태그를 직접 클릭 해 보면 콘솔에
+```console
+clicked span
+clicked p
+clicked div
+```
+다음과 같이 출력되는걸 확인할 수 있습니다. 버블링만 감지하기 때문에 p 태그를 클릭한다면
+```console
+clicked p
+clicked div
+```
+과 같이 출력이 되고, 마지막으로 div태그를 클릭해 보면
+```console
+clicked div
+```
+이렇게 출력이 됩니다.
+
+이처럼 특정 요소에서 이벤트가 발생했을 때 그 이벤트를 상위 요소까지 전달하는 방식을 이벤트 버블링이라 합니다.
+
+## 이벤트 캡처링(Event Capturing)
+
+다음은 이벤트 캡처링의 예시를 살펴보겠습니다.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div>div
+        <p>p
+            <span>span</span>
+        </p>
+    </div>
+</body>
+<script>
+    const div = document.querySelector("div");
+    const p = document.querySelector("p");
+    const span = document.querySelector("span");
+    
+    div.addEventListener("click", function() {
+        console.log("clicked div");
+    }, true);
+
+    p.addEventListener("click", function() {
+        console.log("clicked p");
+    }, true);
+
+    span.addEventListener("click", function() {
+        console.log("clicked span");
+    }, true);
+</script>
+</html>
+```
+
+이벤트 버블링의 예시와 크게 다른건 없지만 addEventListener 메서드의 세 번째 인자에 true 값을 넣어주면
+캡처링을 사용할 수 있습니다. 세 번째 인자값이 없거나 false를 넣어주면 버블링을 의미합니다. 버블링의 예시처럼
+이번에도 span태그를 클릭해 보면 다음과 같은 결과가 출력됩니다.
+```console
+clicked div
+clicked p
+clicked span
+```
+이벤트 캡처링은 버블링과 반대로 이벤트를 반대 방향으로 탐색하는 걸 볼 수 있습니다.
+
+## 이벤트 전파를 막는 방법
+우리가 이벤트 기본 동작을 막는 방법으로 흔하게 사용하는게 event.preventDefault() 가 있습니다. 하지만
+이벤트 버블링이나 이벤트 캡처링같이 이벤트 전파를 막는 방법은 무엇이 있을까요? <br /> 바로 event.stopPropagation() 을 사용하면
+이벤트 전파를 막을 수 있습니다. 예시를 통해 살펴보겠습니다.
+
+```html
+// 이벤트 버블링
+<script>
+    const div = document.querySelector("div");
+    const p = document.querySelector("p");
+    const span = document.querySelector("span");
+
+    function event_stop(e) {
+        e.stopPropagation();
+        console.log(e.currentTarget.tagName);
+    }
+    
+    div.addEventListener("click", event_stop);
+
+    p.addEventListener("click", event_stop);
+
+    span.addEventListener("click", event_stop);
+</script>
+```
+어느 요소를 클릭해도 클릭한 요소부터 상위 요소까지 이벤트가 전달되지 않고 클릭 된 요소의 이벤트만 실행되는 걸 볼 수 있습니다.
+
+```html
+// 이벤트 캡처링
+<script>
+    const div = document.querySelector("div");
+    const p = document.querySelector("p");
+    const span = document.querySelector("span");
+
+    function event_stop(e) {
+        e.stopPropagation();
+        console.log(e.currentTarget.tagName);
+    }
+    
+    div.addEventListener("click", event_stop, true);
+
+    p.addEventListener("click", event_stop, true);
+
+    span.addEventListener("click", event_stop, true);
+</script>
+```
+어느 요소를 클릭해도 상위 요소인 div의 이벤트만 실행되는 걸 볼 수 있습니다.
+
+## 이벤트 위임(Event Delegation)
+
+이벤트 위임은 각각의 요소에 이벤트를 할당하지 않고 공통된 상위 요소에서 하위 요소들의 이벤트를 제어하는 방식을 말합니다.
+예시를 통해 살펴보겠습니다.
+
+```html
+<body>
+    <ul id="fruit">
+        <li>apple</li>
+        <li>banana</li>
+        <li>watermelon</li>
+    </ul>
+</body>
+<script>
+    const fruit = document.querySelector("#fruit");
+
+    fruit.addEventListener("click", (e) => {
+        if (e.target.tagName === "LI") {
+            alert(e.target.textContent)
+        }
+    });
+</script>
+```
+위 코드에서 id 값이 fruit인 요소에 이벤트 핸들러를 추가하고, 클릭 이벤트가 발생한 태그 이름이 li 인 경우 해당 요소의
+텍스트를 alert 창으로 나타나도록 설정하였습니다. 이렇게 하면 각 li 요소마다 이벤트 리스너를 추가하지 않아도 fruit 이라는
+id를 가진 요소의 하위 요소인 모든 li 요소에서 이벤트를 처리할 수 있게 됩니다.
+
