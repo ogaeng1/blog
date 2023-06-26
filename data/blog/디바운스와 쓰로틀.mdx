@@ -1,0 +1,93 @@
+---
+title: 디바운스(debounce)와 쓰로틀(throttle)
+date: '2023-06-26'
+tags: ['프로그래밍']
+draft: false
+summary: '디바운스와 쓰로틀에 대해 알아보자'
+---
+
+디바운스(debouce)와 쓰로틀(throttle)은 프로그래밍 기법 중 하나로, 사용자에 의해 발생할 수 있는 과도한
+API 호출이라던가 성능 개선을 위해 사용되는 방법입니다. 간단하게 표현하자면 디바운스는 여러 요청 중
+마지막 요청만 실행하도록 하는 방법이고, 쓰로틀은 일정 시간동안 하나의 요청만 실행하도록 하는 방법입니다.
+우선, 디바운스의 예시를 살펴보겠습니다.
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button class="btn">버튼</button>
+</body>
+<script>
+	const button = document.querySelector(".btn");
+
+	const debounce = (fn, delay) => {
+	let timeout;
+	return (...args) => { 
+		if (timeout) {
+			clearTimeout(timeout);
+		}
+		timeout = setTimeout(() => {
+			fn();
+			}, delay);
+		};
+	};
+
+	button.addEventListener("click", debounce((e) => {
+		console.log("클릭됨!")
+	}, 2000));
+</script>
+</html>
+```
+버튼을 한번 클릭하면 2초 뒤 콘솔에 문구가 출력됩니다. 하지만 1초 간격으로 버튼을 계속 클릭하면 콘솔에는 결국
+아무런 로그도 찍히지 않습니다. 그 이유는 debounce 함수의 두 번째 인자인 delay에 있습니다. delay는 마지막 이벤트가
+발생한 후 delay 시간 동안 추가적인 이벤트 발생이 없다면 마지막으로 실행됐던 이벤트를 발생시키는 역할을 합니다. 따라서
+1초 간격으로 무한히 버튼을 누른다면 평생 콘솔에는 로그가 찍히지 않을 것입니다. 이처럼 정해진 시간동안 추가적인 이벤트
+발생이 없다면 마지막에 실행되었던 이벤트를 실행 시키는 방법이 디바운스 입니다.
+
+다음은 쓰로틀의 예시를 한번 살펴보겠습니다.
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button class="btn">버튼</button>
+</body>
+<script>
+	const button = document.querySelector(".btn");
+
+	const throttle = (fn, delay) => {
+		let timeout;
+		return (...args) => {
+			if (!timeout) {
+				fn();
+				timeout = setTimeout(() => {
+					timeout = null;
+				}, delay);
+			}
+		};
+	};
+
+	button.addEventListener("click", throttle((e) => {
+		console.log("클릭됨!")
+	}, 2000));
+</script>
+</html>
+```
+throttle 함수는 두 개의 인자를 받습니다. 첫 번째 인자 fn은 실행하고자 하는 함수이며, delay는 함수가 호출된 후 다시
+호출되기 전까지의 시간 간격입니다. throttle 함수는 새로운 함수를 반환하며 반환된 함수는 이벤트 리스너에 전달됩니다.
+반환된 함수 내부에서 timeout 변수를 사용해 이전에 설정된 타이머가 있는지 확인합니다. 만약 타이머가 없다면 fn 함수를
+실행하고 setTimeout 함수를 활용해 delay 만큼 지정해준 시간 뒤에 timeout 변수를 초기화하는 타이머를 설정합니다.
+따라서 버튼을 클릭한 후 2000ms(2초)동안은 추가적인 클릭 이벤트가 발생하더라도 콘솔에는 로그가 단 한번만 찍히게 됩니다.
+
+이렇게 디바운스와 쓰로틀에 대해 알아보았습니다. 디바운스와 쓰로틀을 잘 활용한다면 불필요한 API 호출같은 일을 방지할 수 있을뿐 아니라
+성능 향상에도 큰 도움이 되니 꼭 알고 있으면 도움이 될 것입니다.
