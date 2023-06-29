@@ -1,6 +1,6 @@
 const siteMetadata = {
   title: '무언가 기록하는 공간',
-  author: 'KyeongMin OH',
+  author: 'KyungMin OH',
   headerTitle: "OH's Blog",
   description: '',
   language: 'en-us',

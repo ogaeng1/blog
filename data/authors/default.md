@@ -1,5 +1,5 @@
 ---
-name: KyeongMin OH
+name: KyungMin OH
 avatar: /static/images/profile.jpg
 occupation: Web Developer
 email: 01092428351a@gmail.com
