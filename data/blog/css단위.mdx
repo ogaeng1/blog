@@ -1,0 +1,186 @@
+---
+title: CSS 단위
+date: '2023-07-28'
+tags: ['css']
+draft: false
+summary: 'CSS 단위에 대해 알아보자'
+---
+
+CSS에서 길이를 나타내는 단위에는 여러 종류가 있습니다. 하지만 모든 단위는 다루지 않고 자주 사용되는 단위 몇 가지만
+다뤄보겠습니다.
+
+## 단위의 종류
+
+> * ***절대 단위*** : 절대 단위는 고정된 값에 따라 결정됩니다. 절대 단위는 디자인이 정확해야 하는 경우 유용하며, 요소의 크기가 항상 일정합니다.
+> * ***상대 단위*** : 상대 단위는 다른 요소의 크기나 뷰포트의 크기와 같은 상대적인 값에 따라 결정됩니다. 반응형 디자인에 유용하게 사용되며,
+요소의 크기가 부모 요소의 크기나 뷰포트의 크기에 따라 자동으로 조절됩니다.
+<br />
+
+# px(픽셀)
+
+절대 단위로, 화면의 픽셀 수를 기준으로 합니다. 웹 디자인에서 가장 흔하게 사용되는 단위입니다.
+```html
+...
+<style>
+	.px {
+		width: 200px;
+		height: 200px;
+		border: 1px solid black;
+		background-color: skyblue
+	}
+</style>
+<div class="px">가로, 세로 200px</div>
+...
+```
+![](/static/images/px.PNG)
+
+<br />
+<br />
+
+# %(퍼센트)
+
+상대 단위로 부모 요소의 크기가 기준이 됩니다. 이 단위는 주로 레이아웃을 구성할 때 사용됩니다.
+```html
+<style>
+	.px {
+		width: 200px;
+		height: 200px;
+		border: 1px solid black;
+		background-color: skyblue
+	}
+	.percent {
+		width: 50%;
+		height: 50%;
+		border: 1px solid black;
+		background-color: #2672b6;
+	}
+</style>
+
+<div class="px">
+	<div class="percent"></div>
+</div>
+```
+![](/static/images/percent.PNG)
+
+`percent`클래스를 가진 div요소의 부모 요소는 `px`클래스 div입니다. 부모 요소의 크기가 각각 200px이기 때문에
+`percent`클래스의 div요소의 크기는 부모 요소의 width를 50%, height를 50% 만큼 지정해 주었습니다. 따라서
+`percent`클래스의 div요소의 width와 height는 각각 부모 요소 크기의 절반인 100px가 됩니다.
+
+<br />
+<br />
+
+# vw, vh
+
+viewport width, viewport height 를 의미합니다. 상대 단위로 뷰포트의 넓이와 높이를 기준으로 합니다.
+```html
+<style>
+	body {
+		width: 100vw;
+		height: 100vh;
+		background-color: beige;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.box {
+		width: 50vw;
+		height: 25vh;
+		border: 1px solid black;
+		background-color: skyblue
+	}
+</style>
+<body>
+	<div class="box"></div>
+</body>
+```
+
+![](/static/images/viewport.PNG)
+
+vw, vh는 현재 실행중인 스크린 크기에 맞춰 상대적인 크기를 반환하겠다는 의미로 볼 수 있습니다. 현재 `body`태그는 100vw와 100vh로
+전체 화면의 기준이 되고 있습니다. 만약 현재 스크린 크기가 width=1000px, height=400px 이라고 가정해 보겠습니다. `div`의 넓이는 50vw, 높이는 25vh입니다.
+그렇다면 실제로 `div`의 크기는 width=500px, height=100px로 적용 된다는 의미입니다. 1vw는 뷰포트 너비의 1%, 1vh는 뷰포트 높이의 1%와 같습니다.
+
+<br />
+<br />
+
+# em
+
+상대 단위로, 요소의 폰트 크기를 기준으로 합니다. 예를 들어, 요소의 폰트 크기가 16px이면, `1em`은 16px과 같습니다.
+```html
+<style>
+	body {
+		width: 100vw;
+		height: 100vh;
+		background-color: beige;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.em {
+		width: 10em;
+		height: 10em;
+		border: 1px solid black;
+		font-size: 16px;
+		background-color: skyblue;
+	}
+</style>
+<body>
+	<span class="em">글씨 크기는 16px</span>
+</body>
+```
+
+![](/static/images/em.PNG)
+
+`span`태그의 font-size가 16px로 지정되어 있습니다. `width`와 `height`를 10em으로 설정해 주었습니다. 이는 곧 16 * 10 을 의미합니다.
+따라서 `width`와 `height`가 160px이 됩니다. 만약 `span`태그에 font-size가 명시적으로 설정되지 않았다면 부모 요소의 폰트 크기를 상속받습니다.
+```html
+<style>
+	body {
+		width: 100vw;
+		height: 100vh;
+		background-color: beige;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		font-size: 20px;
+	}
+	.em {
+		font-size: 2em;
+	}
+</style>
+<body>
+	<span class="em">글씨 크기는 40px</span>
+</body>
+```
+
+![](/static/images/em2.PNG)
+
+<br />
+<br />
+
+# rem
+
+상대 단위로, 루트 요소의 폰트 크기를 기준으로 합니다. 예를 들어, `html` 요소의 폰트 크기가 16px이면, `1rem`은 16px과 같습니다.
+
+```html
+<style>
+	html {
+		width: 100vw;
+		height: 100vh;
+		font-size: 16px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.rem {
+		width: 200px;
+		height: 200px;
+		padding: 1rem;
+		border: 0.5rem solid black;
+		font-size: 2rem;
+	}
+</style>
+<div class="rem">border은 8px, 폰트는 32px</div>
+```
+
+![](/static/images/rem.PNG)
