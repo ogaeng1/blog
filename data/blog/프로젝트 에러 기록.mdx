@@ -167,3 +167,193 @@ return (
 
 간단하게 표현하자면 마지막에 발생한 이벤트만 실행되는 걸 알 수 있습니다. 이런 방법으로 성능을 개선할 수 있습니다.
 디바운스와 비슷하게 "쓰로틀링" 이라는 기법도 있습니다. 이건 추후 따로 공부해서 정리해 보겠습니다.
+
+## 3. useMemo 활용
+
+```jsx
+{/* 중략 */}
+const [category, setCategory] = useRecoilState(CategoryState);
+
+useEffect(() => {
+        const getData = async () => {
+            setLoading(true);
+            let q = query(collection(db, "products"));
+            if (category === "최신순") {
+                q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+            } else if (category === "인기순") {
+                q = query(collection(db, "products"), orderBy("viewCount", "desc"));
+            }
+
+            const querySnapshot = await getDocs(q);
+
+            const products:ProductState[] = [];
+            for (const doc of querySnapshot.docs) {
+                const data = doc.data();
+                const imageUrl = await getDownloadURL(ref(storage, data.imageUrl));
+                products.push({ ...data, id: doc.id, imageUrl } as ProductState);
+            }
+            setProduct(products);
+            setLoading(false);
+        };
+        getData();
+    }, [category]);
+{/* 중략 */}
+```
+
+기존 상품리스트를 불러오는 코드입니다. 최신순, 인기순 카테고리에 맞는 데이터를 새로 정렬하기 위해 useEffect훅의 의존성 배열에
+category state 값을 넣어주었습니다. 하지만 매번 카테고리가 변경될 때마다 데이터를 호출 하는 상황이 발생했습니다.
+![](/static/images/before-memo.gif)
+
+
+카테고리가 변경될 때마다 매번 데이터가 호출되는 모습입니다. useMemo훅을 활용해 매번 데이터가 다시 호출되는 걸 방지했습니다.
+```jsx
+{/* 중략 */}
+const [product, setProduct] = useRecoilState(productList);
+const [category, setCategory] = useRecoilState(CategoryState);
+
+useEffect(() => {
+    if (product.length === 0) {
+        const getData = async () => {
+            setLoading(true);
+            let q = query(collection(db, 'products'));
+      
+            const querySnapshot = await getDocs(q);
+      
+            const products: ProductState[] = [];
+            for (const doc of querySnapshot.docs) {
+                const data = doc.data();
+                const imageUrl = await getDownloadURL(
+                    ref(storage, data.imageUrl)
+                );
+                products.push({ ...data, id: doc.id, imageUrl } as ProductState);
+            }
+            setProduct(products);
+            setLoading(false);
+        };
+        getData();
+    }
+}, []);
+
+const filteredProducts = useMemo(() => {
+    if (category === '최신순') {
+        return [...product].sort((a, b) => b.createdAt - a.createdAt);
+    } else if (category === '인기순') {
+        return [...product].sort((a, b) => b.viewCount - a.viewCount);
+    } else {
+        return product;
+    }
+}, [category, product]);
+{/* 중략 */}
+```
+![](/static/images/after-memo.gif)
+
+useMemo훅의 의존성 배열에 category와 product를 넣어 카테고리나 상품 정보가 변경될 때만 다시 실행되게 설정했습니다. 위 결과처럼 카테고리가 변경되어도
+데이터를 매번 호출하지 않고 카테고리에 맞게 데이터가 변경되는 걸 확인할 수 있었습니다.
+
+
+## 4. debounce 적용 시 input에 텍스트가 입력되지 않던 문제
+
+검색 기능을 만들던 중 input에 텍스트가 입력될 때마다 이벤트가 발생하게 됩니다. 예를 들어 `피카츄`라는 단어를 입력한다고 가정해 보면
+`ㅍ`, `피`, `핔`, `피카`, `피캋`, `피카츄` 이처럼 하나하나 입력 시 모든 이벤트가 발생하게 되어 성능면에서 안좋을 거라 판단하여
+사용자가 입력하고자 하는 단어를 모두 입력하고 난 뒤 검색 요청을 보내면 좋을 것 같다는 생각이 들어 디바운스를 적용해 보기로 했습니다.
+```tsx
+import { useRecoilState } from "recoil";
+import { SearchItem } from "@/store/state";
+import { BsSearch } from "react-icons/bs";
+
+const Search = () => {
+    const [searchQuery, setSearchQuery] = useRecoilState(SearchItem);
+
+    const debounce = <T extends (...args: any[]) => any>(func: T, delay: number) => {
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        return (...args: Parameters<T>): any => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), delay);
+        };
+    };
+
+    const searchHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        console.log("디바운스 실행");
+    }
+
+    const onDebounce = debounce(searchHandler, 500)
+    return (
+        <div className="w-full flex items-center mt-[100px]">
+            <input 
+                type="text" 
+                placeholder="검색어를 입력해주세요." 
+                className=" border-b-2 outline-none w-3/4 focus:placeholder-transparent focus:border-slate-700 text-[24px]"
+                value={searchQuery}
+                onChange={onDebounce}
+                maxLength={20}
+            />
+            <button className="flex items-center text-[22px]">
+                <BsSearch className="absolute right-0 mr-[27%]" />
+            </button>
+        </div>
+    )
+}
+
+export default Search;
+```
+
+![](/static/images/err_debounce.gif)
+
+input에 텍스트가 입력되지는 않고 마지막 입력 후 500ms 후 추가적인 입력이 없다면 console만 찍히는 모습입니다. 사용자가 입력한 검색어는
+실제로는 `searchQuery`변수에 반영되지만 디바운스에 설정된 시간 동안 사용자의 화면에는 해당 텍스트가 표시되지 않은 것처럼 보였던 것이라고 생각했습니다.
+그 이유는 디바운스가 적용된 `onDebounce`함수를 통해 `searchHandler`함수를 호출하는데 디바운스 함수는 제가 설정한 500ms 시간이 지난 후 `searchHandler`
+함수를 호출하게 됩니다. 따라서 디바운스 적용 시간이 지나기 전까지는 `searchQuery`변수의 상태가 최신 입력값을 반영하지 않고, 디바운스 함수에 의해
+지연되어 input에는 아무런 텍스트가 입력되지 않은 것이라고 판단했습니다. 따라서 코드를 다음과 같이 수정했습니다.
+
+```tsx
+import { useRecoilState } from "recoil";
+import { SearchItem } from "@/store/state";
+import { BsSearch } from "react-icons/bs";
+import { useState, useEffect } from "react";
+
+const Search = () => {
+    const [searchQuery, setSearchQuery] = useRecoilState(SearchItem);
+    const [query, setQuery] = useState(searchQuery);
+
+    const searchHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setQuery(e.target.value);
+    }
+
+    useEffect(() => {
+        const debounce = setTimeout(() => {
+            setSearchQuery(query);
+        }, 500);
+    
+        return () => clearTimeout(debounce);
+    }, [query, setSearchQuery]);
+
+    return (
+        <div className="w-full flex items-center mt-[100px]">
+            <input 
+                type="text" 
+                placeholder="검색어를 입력해주세요." 
+                className=" border-b-2 outline-none w-3/4 focus:placeholder-transparent focus:border-slate-700 text-[24px]"
+                value={query}
+                onChange={searchHandler}
+                maxLength={20}
+            />
+            <button className="flex items-center text-[22px]">
+                <BsSearch className="absolute right-0 mr-[27%]" />
+            </button>
+        </div>
+    )
+}
+
+export default Search;
+```
+
+기존에 디바운스가 적용된 `searchHandler`함수 내에서 `setSearchQuery`를 호출하는 대신 `searchQuery`를 `query` 변수에 저장한 뒤
+디바운스 함수에서 `query`변수 값을 사용해 `setSearchQuery`를 호출하는 방법으로 변경했습니다. 이렇게 하면 input에 텍스트를
+입력할 때마다 `searchQuery`의 상태가 변경되지만, 실제로는 디바운스 함수가 delay 시간 내에 마지막으로 입력된 값을 기준으로 업데이트를
+할 것이라고 생각했습니다. 이렇게 하면 `searchHandler`함수에서 input에 입력된 텍스트를 `query`상태 값에 저장하고 디바운스가 적용된
+`useEffect`훅 내부에서 `query`를 사용해 `setSearchQuery`를 호출하도록 하였습니다. 최종 결과는 다음과 같습니다.
+
+![](/static/images/done_debounce.gif)
+
+참고한 블로그 : https://velog.io/@skawnkk/debounce-throttle
