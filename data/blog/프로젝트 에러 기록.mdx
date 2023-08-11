@@ -175,28 +175,28 @@ return (
 const [category, setCategory] = useRecoilState(CategoryState);
 
 useEffect(() => {
-        const getData = async () => {
-            setLoading(true);
-            let q = query(collection(db, "products"));
-            if (category === "최신순") {
-                q = query(collection(db, "products"), orderBy("createdAt", "desc"));
-            } else if (category === "인기순") {
-                q = query(collection(db, "products"), orderBy("viewCount", "desc"));
-            }
+    const getData = async () => {
+        setLoading(true);
+        let q = query(collection(db, "products"));
+        if (category === "최신순") {
+            q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+        } else if (category === "인기순") {
+            q = query(collection(db, "products"), orderBy("viewCount", "desc"));
+        }
 
-            const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(q);
 
-            const products:ProductState[] = [];
-            for (const doc of querySnapshot.docs) {
-                const data = doc.data();
-                const imageUrl = await getDownloadURL(ref(storage, data.imageUrl));
-                products.push({ ...data, id: doc.id, imageUrl } as ProductState);
-            }
-            setProduct(products);
-            setLoading(false);
-        };
-        getData();
-    }, [category]);
+        const products:ProductState[] = [];
+        for (const doc of querySnapshot.docs) {
+            const data = doc.data();
+            const imageUrl = await getDownloadURL(ref(storage, data.imageUrl));
+            products.push({ ...data, id: doc.id, imageUrl } as ProductState);
+        }
+        setProduct(products);
+        setLoading(false);
+    };
+    getData();
+}, [category]);
 {/* 중략 */}
 ```
 
@@ -357,3 +357,50 @@ export default Search;
 ![](/static/images/done_debounce.gif)
 
 참고한 블로그 : https://velog.io/@skawnkk/debounce-throttle
+
+
+
+## 5. 결제 기능만들기
+
+결론부터 말하자면 실제 결제기능은 구현하지 못했다. 결제 기능을 만들기 위해 찾아 봤던 결제 시스템들은 다음과 같다.
+
+### 1. Stripe
+
+우선 가장먼저 파이어베이스 결제를 찾아봤을 때 가장 많이 보였던 `Stripe`입니다. 하지만 Stripe는 46개의 국가를 지원하는데 그 중
+우리나라는 없었다.. Stripe는 사용하지 못하겠다고 판단!
+
+Stripe 지원 국가 : https://stripe.com/
+
+![](/static/images/stripe.PNG)
+
+
+### 2. 네이버페이
+
+국내에서 사실 가장 흔하게 사용되는 결제 시스템이지 않을까 생각이 든다. 요즘 웬만한 쇼핑에선 네이버페이가 지원 되지 않은 곳을
+찾기 힘들 정도.. 하.지.만 !
+
+![](/static/images/naverpay.PNG)
+
+네이버페이 서비스를 이용하려면 사업자등록이 되어있어야 한다.. 나처럼 1인 개발에서는 실제 결제기능을 이용할 수 없다는 사실..
+
+네이버페이 개발자 센터 : https://admin.pay.naver.com/about
+
+++ 카카오페이도 역시 가맹점 신청이 필요하다..
+
+
+### 3. 페이팔
+
+결론부터 말하자면 최종적으로 페이팔을 활용했다. 하지만 페이팔도 역시 실제 거래를 위해선 해외 계좌가 필요했다..
+하지만 페이팔에서 샌드박스 모드와 라이브 모드가 있는데 샌드박스 모드는 테스트 환경을 의미하고 라이브는 실제 온라인 거래를 할 수 있는
+모드다. 하지만 라이브 모드를 사용하려면 몇 가지의 인증과 해외 계좌를 등록해야 한다.. 어쩔 수 없이 테스트 모드라도 사용해서
+결제 기능을 흉내 내보기로 했다. 페이팔 결제를 쉽게 도와주는 라이브러리도 있다. <br />
+페이팔 라이브러리 : https://www.npmjs.com/package/react-paypal-button-v2 <br />
+페이팔 개발자 대시보드 : https://developer.paypal.com/dashboard/
+
+사용방법은 굉장히 간단했다. 
+
+![](/static/images/paypal.PNG)
+
+`Create App` 버튼으로 앱을 하나 만들고 Client ID를 적용 시켜주면 된다.
+
+
