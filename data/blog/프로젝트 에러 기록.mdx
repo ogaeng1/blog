@@ -1,38 +1,71 @@
 ---
-title: 제작 과정과 에러 기록
-date: '2023-05-13'
-tags: ['프론트엔드']
+title: 프로젝트 만들기(결제 기능을 곁들인..)
+date: '2023-07-13'
+tags: ['프로젝트']
 draft: false
-summary: '제작 과정과 에러 기록'
+summary: '결제 기능 만들어보기'
 ---
 
-## 1. Next.js 웹 스토리지 에러
+사실 이 프로젝트를 시작하게 된 계기는 딱히 없다.. 그냥 뜬금없이 결제 기능을 만들어보고 싶었다.
+하지만 백엔드의 지식이 없는 나로써 막막했지만 별도의 코드 없이 다양한 기능을 제공하는 `파이어베이스`를 사용하기로 결정했다.
+이 포스팅은 프로젝트를 진행하면서 배웠던 점이나 에러를 기록하기 위한 목적으로 작성했다.
 
-![](/static/images/err1.PNG)
+## Next.js Image
 
-Next.js에서 서버 사이드 렌더링 시 발생하는 에러입니다. Next.js는 서버 사이드 렌더링을
-지원하기 때문에 컴포넌트가 서버에서 렌더링될 수 있습니다. 반면 웹 스토리지 객체는 브라우저에서만
-사용할 수 있기 때문에 서버에서 렌더링 될때 레퍼런스 에러를 발생 시켰습니다. 이러한 문제를 해결하기
-위해 해당 코드가 클라이언트에서만 실행될 수 있도록 useEffect 훅을 사용하여 변경 하였습니다.
+Next.js에서는 이미지를 사용할 때 ima 태그가 아닌 Next.js 에서 제공하는 Image 컴포넌트를 사용한다.
+```jsx
+import Image from "next/image";
+```
+Next.js 에서 이미지컴포넌트는 이미지를 자동으로 최적화 해준다고 함!
 
-```tsx
-const [user, setUser] = useState<string | null>("");
+```jsx
+...
+<Image src={...} alt="" width={100} height={100} />
+...
+```
+기본적으로는 width, heigth 속성을 사용해야 하지만, 로컬에 있는 이미지를 사용할 땐 width, height 속성을 따로 지정하지 않다도 된다.
+import 된 이미지 파일을 기반으로 Next에서 자동으로 결정해주는 듯 하다.
 
-useEffect(() => {
-    if (typeof window !== 'undefined' && window.sessionStorage) {
-        setUser(sessionStorage.getItem("user"));
-    }
-}, []);
+```jsx
+import Image from "next/image";
+import localImg from "..경로.."
 
-if (user) {
-    return (
-        ....
-    )
-}
-
+// 로컬 이미지는 width, height 속성을 지정하지 않아도 에러가 발생하지 않는다
+<Image src={localImg} alt="" />
 ```
 
-## 2. Debounce 적용 시키기
+## Next.js Link vs Route
+
+나는 기존 리액트 프로젝트에서 페이지 이동을 위해 `react-router-dom`을 사용했었다. 하지만 Next.js에서는
+페이지 이동을 위해 Link컴포넌트와, Route를 사용할 수 있다. 왜 헷갈리게 여러개가 있을까.. 일단 둘의 차이점을
+기록해 보기로 했다.
+
+### Link
+```jsx
+import Link from "next/link";
+
+<Link href="/blog">블로그 이동</Link>
+```
+우선 Link 컴포넌트 사용 방법이다. import 후  `href`속성에 이동할 페이지 경로를 적어주면 된다.
+
+### Route
+```jsx
+import { useRouter } from "next/router";
+
+const router = useRouter();
+
+<button type="button" onClick={() => router.push("/blog")}>블로그 이동</button>
+```
+Route는 다음과 같이 사용이 가능하다.
+
+
+### 둘의 차이점?
+
+router.push는 onClick에 사용되는 행동이기 때문에 Link 컴포넌트보다 SEO에 불리하다고 한다.
+Next.js의 장점이 SEO인걸 고려해보면 Link 컴포넌트 사용을 지향하는것 같다.
+
+
+## Debounce로 성능 개선시키기
 
 ```ts
 import { ToastContainer, toast } from 'react-toastify';
@@ -168,7 +201,7 @@ return (
 간단하게 표현하자면 마지막에 발생한 이벤트만 실행되는 걸 알 수 있습니다. 이런 방법으로 성능을 개선할 수 있습니다.
 디바운스와 비슷하게 "쓰로틀링" 이라는 기법도 있습니다. 이건 추후 따로 공부해서 정리해 보겠습니다.
 
-## 3. useMemo 활용
+## useMemo 활용
 
 ```jsx
 {/* 중략 */}
@@ -251,7 +284,7 @@ useMemo훅의 의존성 배열에 category와 product를 넣어 카테고리나 
 데이터를 매번 호출하지 않고 카테고리에 맞게 데이터가 변경되는 걸 확인할 수 있었습니다.
 
 
-## 4. debounce 적용 시 input에 텍스트가 입력되지 않던 문제
+## debounce 적용 시 input에 텍스트가 입력되지 않던 문제
 
 검색 기능을 만들던 중 input에 텍스트가 입력될 때마다 이벤트가 발생하게 됩니다. 예를 들어 `피카츄`라는 단어를 입력한다고 가정해 보면
 `ㅍ`, `피`, `핔`, `피카`, `피캋`, `피카츄` 이처럼 하나하나 입력 시 모든 이벤트가 발생하게 되어 성능면에서 안좋을 거라 판단하여
@@ -360,7 +393,7 @@ export default Search;
 
 
 
-## 5. 결제 기능만들기
+## 결제 기능만들기
 
 결론부터 말하자면 실제 결제기능은 구현하지 못했다. 결제 기능을 만들기 위해 찾아 봤던 결제 시스템들은 다음과 같다.
 
@@ -401,6 +434,144 @@ Stripe 지원 국가 : https://stripe.com/
 
 ![](/static/images/paypal.PNG)
 
-`Create App` 버튼으로 앱을 하나 만들고 Client ID를 적용 시켜주면 된다.
+`Create App` 버튼으로 앱을 하나 만들고 Client ID를 발급받고 컴포넌트에 적용시켜 주면 된다.
+```tsx
+return (
+    <PayPalButton
+        amount="0.01"
+        onSuccess={async (details: any, data: any) => {
+            {/*....*/}
+            return fetch("/paypal-transaction-complete", {
+                method: "post",
+                body: JSON.stringify({
+                    orderId: data.orderID
+                })
+            });
+        }}
+        options={{
+            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
+        }}
+    />
+)
+```
+
+API 키 같은 중요한 코드는 환경변수로 사용해 주면 된다.
+
+## 상품 리스트 캐싱처리
+
+상품 리스트 페이지에 접근하면 상품 데이터를 불러오게 됩니다. 데이터를 불러오는동안 로딩처리가 되며, 데이터 호출이 끝나면
+상품을 보여주게 됩니다. 하지만 상품 리스트 페이지에서 새로고침을 하거나 다른 페이지에서 새로고침을 하고 상품 페이지로 돌아오면
+계속 상품이 호출되는 모습을 볼 수 있습니다. 저는 데이터를 캐싱해서 새로고침을 하더라도 데이터를 호출하지 않고 캐싱되어 있는
+데이터를 사용하고 싶었습니다.(로딩화면 없이 곧바로 상품 데이터를 보여주고 싶었음)
+```tsx
+useEffect(() => {
+    const getData = async () => {
+        if (typeof id === "string") {
+            const docRef = doc(db, "products", id);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const imageUrl = await getDownloadURL(ref(storage, data.imageUrl));
+
+                let characterImgUrls: string[] = [];
+                if (Array.isArray(data.characterImg)) {
+                    characterImgUrls = await Promise.all(
+                        data.characterImg.map((img: string) => getDownloadURL(ref(storage, img)))
+                    );
+                }
+                setProduct({ ...data, id: docSnap.id, imageUrl, characterImg: characterImgUrls } as ProductState);
+            }  
+        }
+    };
+    getData();
+}, [id]);
+```
+
+기존에 상품 리스트를 불러오는 코드입니다. 부트캠프 실전프로젝트때 사용했었던 `React-query`를 사용하여 데이터를 캐싱처리 해보기로 결정했습니다.
+우선 데이터를 불러오는 코드를 분리하였습니다.
+```tsx
+export const getData = async (): Promise<ProductState[]> => {
+	let q = query(collection(db, 'products'));
+	const querySnapshot = await getDocs(q);
+	const products: ProductState[] = [];
+	for (const doc of querySnapshot.docs) {
+	const data = doc.data();
+	let imageUrl = '';
+
+	if (data.imageUrl) {
+		imageUrl = await getDownloadURL(ref(storage, data.imageUrl));
+	}
+
+	const product: ProductState = {
+		id: doc.id,
+		imageUrl: imageUrl,
+		price: data.price,
+		description: data.description,
+		name: data.name,
+		type: data.type,
+		quantity: data.quantity,
+		createdAt: data.createdAt,
+		viewCount: data.viewCount,
+		age: data.age,
+		genre: data.genre,
+		broadcast: data.broadcast,
+		year: data.year,
+		view: data.view,
+		characterImg: data.characterImg,
+		nickname: data.nickname,
+		actor: data.actor
+	};
+
+	products.push(product);
+	}
+	return products;
+}
+```
+
+그리고 기존의 상품 리스트 컴포넌트에 상품 데이터를 호출하는 코드를 지우고 `React-query`의 `useQuery`훅을 사용해 함수를 호출했습니다.
+```ts
+const { data, isLoading, isError } = useQuery<ProductState[]>(["products"], getData, {
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+})
+```
+위 코드를 보면 staleTime 이란게 있는데 stale은 최신화가 필요한 데이터라는 의미로 볼 수 있습니다. 데이터가 stale 상태가 되면 다음과 같은 경우에
+데이터를 refetch 합니다. <br />
+1. 페이지를 이동했다가 돌아왔을 때 <br />
+2. 브라우저 화면을 이탈한 뒤 다시 focus 했을 때 <br />
+3. 네트워크 연결이 끊긴 뒤 다시 연결됐을 때 <br />
+<br />
+refetch 를 막는 방법은 위에서 사용한 `refetchOnWindowFocus` 을 사용할 수도 있고, `staleTime`옵션으로 설정한 시간동안 데이터가 stale 되지 않도록해
+refetch를 막을 수도 있습니다. <br />
+
+캐싱을 활용하려면 staleTime과 cacheTime을 사용해야 합니다. `staleTime`은 데이터가 fresh 상태에서 stale상태로 변경되는데 걸리는 시간입니다.
+`cacheTime`을 따로 설정하지 않으면 디폴트 값은 5분입니다. 따라서 캐싱 설정을 하고 다시 데이터를 호출하고 새로고침도 눌러보았습니다.
+
+![](/static/images/cache.gif)
+
+하지만 제가 생각했던 것과는 달리 여전히 로딩화면이 출력되는 모습입니다. 혹시나 캐싱 적용이 안되었나 `React-query devtools`를 통해 확인해 보았습니다.
+
+![](/static/images/cache_query.PNG)
+
+`isFetching`옵션이 `false`이고, `status`가 `success`로 표기된걸로 보아 캐싱이 잘 적용된것 같습니다. 하지만 제가 원했던 새로고침을 하더라도
+이미 캐싱된 데이터가 존재하면 해당 데이터를 바로 사용자의 화면에 표시해주는 걸 생각했는데, 여전히 로딩화면이 출력되는 모습입니다.
+
+이 문제는 조금더 생각을 해봐야할 것 같다...
 
 
+## 언젠가 파이어베이스를 다시 사용하게 될 날을 기약하며 정리한 파이어베이스 db 메서드 정리..
+
+내가 프로젝트를 진행하며 사용했던 메서드를 기록해 놓기로 결정.. 언젠간 다시 사용할 날이 오지 않을까?
+`collection()` : db의 컬렉션을 참조하는 메서드. 컬렉션 내부의 문서들을 조작할 수 있다. <br />
+`doc()` : db내의 특정 문서를 참조하는 메서드. 해당 메서드로 참조한 문서의 데이터를 조회함 <br />
+`setDoc()` : 문서에 데이터를 저장하는 메서드. 문서가 존재하지 않을 경우 새로운 문서를 만듦 <br />
+`getDoc()` : 특정 문서의 데이터를 가져오는 메서드. doc() 메서드로 참조한 문서의 데이터를 조회 <br />
+`getDocs()` : 컬렉션 내의 모든 문서를 가져오는 메서드. <br />
+`updateDoc()` : 문서의 데이터를 업데이트 하는 메서드. <br />
+`collection()` : db의 컬렉션을 참조하는 메서드. <br />
+`query()` : db에 대한 쿼리를 생성하는 메서드. <br />
+`increment()` : 문서 내의 특정 필드 값을 증가시키는 메서드. number 타입의 메서드만 가능. <br />
+
+각각의 메서드들을 조합하여 사용한 나의 실제 db 모습..
+
+![](/static/images/db.PNG)
