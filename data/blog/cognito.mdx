@@ -1,0 +1,73 @@
+---
+title: AWS-Cognito User Pool 생성 및 설정
+date: '2023-09-15'
+tags: ['AWS-cognito']
+draft: false
+summary: 'AWS-Cognito 생성 및 설정'
+---
+
+이 포스팅은 Cognito User Pool 생성과 설정 방법에 대한 내용만 기록한 글입니다.
+
+## 1. 사용자 풀 생성
+
+[AWS-Cognito 바로가기](https://aws.amazon.com/ko/cognito/?nc2=type_a)
+
+![](/static/images/create.PNG)
+
+AWS 로그인 후 Cognito 콘솔에서 "사용자 풀 생성" 버튼을 눌러줍니다.
+
+## 2. 로그인 환경 구성
+
+![](/static/images/userpool1.PNG)
+
+오른쪽의 "연동 자격 증명 공급자"를 선택하면 소셜 로그인도 설정할 수 있다고 합니다. 소셜 로그인을 사용하실 분은
+오른쪽을 아니라면 기본 값을 사용하면 되겠습니다.
+
+## 3. 보안 요구 사항 구성
+
+![](/static/images/userpool2.PNG)
+
+암호 요구 사항을 Cognito의 기본값으로 설정할 건지, 내가 직접 요구 사항을
+custom해서 사용할 건지 선택합니다. 저는 기본값이 너무 복잡해 보여서
+custom으로 "1개 이상의 대문자 포함"조건을 제외 시켰습니다.
+
+![](/static/images/userpool3.PNG)
+
+멀티 팩터 인증은 없음으로 설정하고 "사용자 계정 복구" 부분은 디폴트 값으로 사용했습니다.
+
+## 4. 가입 환경 구성
+
+![](/static/images/userpool4.PNG)
+
+![](/static/images/userpool5.PNG)
+
+이 부분들은 디폴트 값으로 설정했습니다.
+
+![](/static/images/userpool6.PNG)
+
+회원가입할 때, 필수로 입력해야 할 속성들을 설정합니다. 저는 "email"만 사용하려 했으나
+추가 필수 속성으로 "nickname"까지 추가해 주었습니다.
+
+## 5. 메시지 전송 구성
+
+![](/static/images/userpool7.PNG)
+
+Cognito를 사용하여 이메일 전송으로 변경했습니다.
+
+## 6. 앱 통합
+
+![](/static/images/userpool10.PNG)
+
+사용자 풀 이름을 설정해줍니다.
+
+![](/static/images/userpool8.PNG)
+
+퍼블릭 클라이언트 선택 후 클라이언트 이름을 만들어 줍니다. 보안키는
+생성하지 않았습니다.
+
+![](/static/images/userpool9.PNG)
+
+태그 부분은 별도의 설정 없이 넘어갑니다. 다시 Cognito메인으로 돌아와서 사용자 풀이
+잘 만들어졌나 확인해 봅시다.
+
+![](/static/images/userpool11.PNG)
