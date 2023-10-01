@@ -124,4 +124,251 @@ CSS 설계시 어떤 방법을 사용해도 무방하지만 다음과 같은 사
 
 <br />
 
+# CSS 설계 기법
 
+CSS 설계 기법에는 여러가지가 있지만 여기에선 세 가지 기법만 다룹니다.
+
+## <span style={{ color: "skyblue" }}>OOCSS (Object Oriented CSS)</span>
+
+> * 레고처럼 자유로운 조합이 가능한 모듈의 집합을 만든다.
+> * 그 모듈을 조합해 페이지를 만든다.
+> * 그리하여 신규 페이지를 만드는 경우에도 기본적으로 추가로 CSS를 만들 필요가 없다.
+
+위와 같은 발상으로 만들어진 OOCSS는 다른 CSS 설계 기법에도 조금씩 영향을 주었는데, 이 레고와 같은 모듈을
+구현하기 위한 구체적인 수법으로 다음 두 가지 원칙을 들 수 있습니다.
+> * 스트럭처(구조)와 스킨(화면) 분리
+> * 컨테이너와 콘텐츠 분리
+
+### 스트럭처와 스킨 분리
+
+우선 버튼 두 종류의 버튼이 있다고 가정해 보겠습니다.
+```html
+<main id="main">
+	<button class="btn-general">기본 버튼</button>
+	<button class="btn-wraning">취소 버튼</button>
+</main>
+```
+```css
+#main .btn-general {
+	display: inline-block;
+	width: 300px;
+	max-width: 100%;
+	padding: 20px 10px;
+	background-color: #e25c00;
+	box-shadow: 0 3px 6px rgba(0, 0, 0, .16);
+	color: #fff;
+	font-size: 18px;
+	line-height: 1.5;
+	text-align: center;
+}
+
+#main .btn-wraning {
+	display: inline-block;
+	width: 300px;
+	max-width: 100%;
+	padding: 20px 10px;
+	background-color: #f1de00;
+	box-shadow: 0 3px 6px rgba(0, 0, 0, .16);
+	color: #222;
+	font-size: 18px;
+	line-height: 1.5;
+	text-align: center;
+}
+```
+background-color 와 color를 제외한 나머지 코드는 동일합니다. 버튼 구성을 보면 "버튼은 구조(가로 길이나 높이 등)와 형태(박스의 그림자나 배경 색상, 문자 색상 등)를
+조합해서 만들어진다"고 생각하는게 "스트럭처와 스킨을 분리"하는 사고방식입니다.
+
+스트럭처에 해당하는 속성은 크게 다음과 같습니다. <br />
+> * width
+> * height
+> * padding
+> * margin
+
+스킨에 해당하는 속성은 크게 다음과 같습니다.
+> * color
+> * font
+> * background
+> * box-shadow
+> * text-shadow
+
+위와 같이 구분할 수 있지만 OOCSS에서는 명확하게 결정되어 있는 것은 아닙니다. 위 내용들을 토대로 "스트럭처와 스킨 분리"에 따라 코드를 수정해보면
+다음과 같습니다.
+```html
+<main id="main">
+	<button class="btn general">기본 버튼</button>
+	<button class="btn wraning">취소 버튼</button>
+</main>
+```
+```css
+/* 스트럭처 */
+#main .btn {
+	display: inline-block;
+	width: 300px;
+	max-width: 100%;
+	padding: 20px 10px;
+	box-shadow: 0 3px 6px rgba(0, 0, 0, .16);
+	font-size: 18px;
+	line-height: 1.5;
+	text-align: center;
+}
+
+/* 스킨 */
+#main .general {
+	background-color: #e25c00;
+	color: #fff;
+}
+
+#main .wraning {
+	background-color: #f1de00;
+	color: #222;
+}
+```
+이렇게 하면 다른 색상의 버튼을 추가하더라도 단지 몇 줄의 코드를 작성하는 것으로도 구현할 수 있게 됩니다.
+
+### 컨테이너와 콘텐츠 분리
+
+앞에서 본 예시에서는 버튼 모듈은 id 속성에 main이 지정된 main 요소 안에 포함되어 있습니다. 하지만
+이 상태에서는 버튼을 main 밖에서 사용하려 해도 그럴 수 없습니다. 이 문제에 대한 해결 방법은 아주 간단합니다.
+버튼 모듈을 main 밖에서도 동작하도록 CSS 셀렉터를 수정하면 됩니다. 컨테이너와 콘텐츠 분리라는 것은 "모듈을 가능한 특정한 영역에
+의존하지 않도록 한다"는 지침을 의미합니다.
+
+```html
+<main id="main">
+	<button class="btn-general">기본 버튼</button>
+	<button class="btn-wraning">취소 버튼</button>
+</main>
+<!-- main에 의존하지 않으므로, 푸터에도 같은 형태의 버튼을 사용할 수 있음 -->
+<footer>
+	<button class="btn-general">기본 버튼</button>
+</footer>
+```
+```css
+/* 스트럭처 */
+.btn {
+	display: inline-block;
+	width: 300px;
+	max-width: 100%;
+	padding: 20px 10px;
+	box-shadow: 0 3px 6px rgba(0, 0, 0, .16);
+	font-size: 18px;
+	line-height: 1.5;
+	text-align: center;
+}
+
+/* 스킨 */
+.general {
+	background-color: #e25c00;
+	color: #fff;
+}
+
+.wraning {
+	background-color: #f1de00;
+	color: #222;
+}
+```
+
+지금까지 OOCSS의 대원칙인 두 가지 사고방식에 대해 설명했습니다. 사실 OOCSS에서 명확하게 규칙이라고 불리는 것은 많지 않습니다.
+OOCSS는 CSS 설계의 기초 중의 기초가 되는 내용들이므로 꼭 기억하도록 합시다.
+
+## <span style={{ color: "skyblue" }}>SMACSS</span>
+
+SMACSS는 (Scalable and Modular Architecture for CSS)의 약어로 CSS 코드를 그 역할에 따라 분류한 것이 특징으로 다섯 가지 분류에
+따라 각각 규칙을 설정하고 있습니다.
+> * 베이스(Base)
+> * 레이아웃(Layout)
+> * 모듈(Module)
+> * 스테이트(State)
+> * 테마(Theme)
+
+### 베이스 규칙
+
+베이스 규칙에서는 프로젝트의 표준 스타일을 정의합니다. 베이스 규칙에서 사용하는 셀렉터는 주로 요소형 셀렉터지만
+그 외에 다음 셀렉터도 사용합니다.
+> * 자녀 셀렉터
+> * 손자 셀렉터
+> * 의사 클래스
+> * 속성 셀렉터
+> * 인접 형제 셀렉터
+> * 일반 형제 셀렉터
+
+하지만 기본 규칙을 너무 많이 정의해 놓으면 영향 범위가 넓어지게 됩니다. 또한 "프로젝트 내에서 각 요소가 표준으로
+어떻게 동작하는가"를 정의하기 위한 규칙이기 때문에, 특정한 상황에서의 사용을 가정하는 ID 셀렉터나 클래스 셀렉터에는 사용할 수 없습니다.
+
+### 레이아웃 규칙
+
+레이아웃 규칙은 헤더나 메인 영역, 사이드 바, 푸터 등 웹사이트의 큰 틀을 구성하는 큰 모듈에 관한 규칙입니다. 레이아웃을 구성하는 것의
+대부분은 특정 페이지에서 한 차례만 사용되는 것이 많으므로, ID 셀렉터를 활용한 스타일링을 허용합니다. 레이아웃과 관련해서 반복적으로 사용
+하는 모듈의 경우에는 클래스 셀렉터를 이용합니다.
+
+### 모듈 규칙
+
+모듈 규칙에 해당하는 모듈은 레이아웃 모듈 안에 배치되는 것을 가정하고 있습니다.
+> * 타이틀(Title)
+> * 버튼(Button)
+> * 카드(Card)
+> * 내비게이션(Navigation)
+> * 캐러셀(Carousel)
+
+위와 같이 레이아웃 모듈 안에 배치할 수 있는 개별 모듈이라면 SMACSS에서는 모두 모듈 규칙에 해당합니다. 또한, 모듈을 만들 때는
+다음과 같은 두가지 사항에 주의해야 합니다.
+> * 가급적 요소형 셀렉터를 사용하지 않는다.
+> * 특정한 콘텍스트에 지나치게 의존하지 않는다.
+
+### 스테이트 규칙
+
+스테이트는 기존 스타일을 덮어쓰거나 확장하기 위해 사용합니다. 스테이트 규칙의 상태 스타일은 다음과 같이 구분할 수 있습니다.
+> * 상태 스타일은 레이아웃이나 모듈에 할당할 수 있다.
+> * 상태 스타일은 자바스크립트에 의존한다는 의미를 갖는다.
+
+스테이트 규칙에 따른 상태 스타일의 클래스 이름은 모두 "-is"라는 접두사를 붙입니다. 또한 기존 스타일을 모두 덮어써서 상태 스타일을
+반영하는 것을 기대하기 때문에 필요한 경우에는 !important 사용도 권장합니다.
+
+### 테마 규칙
+
+테마 규칙은 사이트 내 레이아웃이나 색상, 텍스트 처리 등을 일정한 규칙에 따라 덮어쓰는 것으로, 기존의 다양한 스타일링이 덮어쓰기의 대상이 됩니다.
+테마 규칙의 대상이 되는 모듈 수가 그리 많지 않다면 별도의 노력 없이도 테마 규칙 대상이 되는 모듈과 그렇지 않은 규칙을 구분할 수 있을 것입니다.
+
+
+## <span style={{ color: "skyblue" }}>BEM</span>
+
+BEM은 블록(Block), 엘리먼트(Element), 모디파이어(Modifier)의 약어로 사용자 인터페이스를 독립된 블록으로 분리함으로써 복잡한 페이지에서도
+간단하고 신속하게 개발을 수행하는 것이 목적입니다.
+
+### BEM 기본
+
+BEM 전체에 공통으로 적용되는 기본 규칙에 관해 설명합니다.
+> * BEM에서는 CSS스타일링에 있어서 요소형 셀렉터나 ID 셀렉터 사용을 권장하지 않습니다.
+> * 클래스 이름은 영소문자를 사용하고, 단어는 하이픈으로 연결한다.
+
+### Block 기본
+
+BEM에서는 Block을 "논리적이고 기능적으로 독립한 페이지 모듈"이라고 정의하고 있습니다. <br />
+Block의 이름 규칙은 다음과 같습니다.
+> * 한 단어인 경우 <br />
+menu, block 등
+> * 두 단어 이상인 경우 <br />
+block-name, global-nav 등
+
+클래스 이름은 "그것이 무엇인지" 알 수 있는 의미를 담아서 만듭니다.
+
+### Element 기본
+
+Element는 "Block을 구성하고, Block 외부에서는 독립해서 사용할 수 없는 것"으로 정의되어 있습니다.
+Element 클래스 이름은 Block의 이름을 상속받고 언더스코어 두 개를 입력한 뒤 Element 이름을 붙입니다.
+> * 한 단어인 경우 <br />
+menu__item
+> * 두 단어 이상인 경우 <br />
+global-nav__link-menu__item
+
+Element 이름에 사용하는 단어 또한 Block과 마찬가지로 "무엇인지"를 의미하는 단어를 사용합니다.
+
+### Modifier 기본
+
+Modifier는 "Block 혹은 Element의 모습이나 상태 또는 움직임을 정의하는 것"이라 정의되어 있습니다. 그리고 Block 혹은 Element에 대한
+선택 요소이므로 반드시 있어야 하는 것은 아닙니다. Modifier는 단독으로 사용할 수 없으며 반드시 Block이나 Element 클래스 이름이 있는 상태에서,
+두 번째 이후 클래스 이름으로 붙여 사용해야 합니다.
+```html
+<!-- 예 -->
+
+<a class="button button_size_s" href="#">버튼</a>
+```
