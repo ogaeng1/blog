@@ -11,6 +11,7 @@ summary: 'git & github 활용하기'
 계속 공부하면서 내용을 추가할 예정입니다. <br />
 
 23.10.06 - 프로젝트 깃허브에 올리기, 파일 내용 수정 후 다시 커밋하기 파트 작성
+23.10.07 - 다른 컴퓨터에서 작업하고 커밋하기 파트 추가
 
 # Git
 깃의 사전적 의미는 컴퓨터 파일의 변경사항을 추적하고 여러 명의 사용자들 간에 해당 파일들의 작업을
@@ -88,7 +89,7 @@ $ git commit -m "나의 첫 커밋"
 ```
 ```bash
 // 생성한 레포의 원격 주소를 로컬 깃 저장소와 연결
-$ git remote add origin [자기가 만든 레포의 원격 주소]
+$ git remote add origin https://github.com/ogaeng1/git-github.git
 ```
 ```bash
 // 로컬 변경 사항을 원격 저장소로 푸쉬
@@ -109,6 +110,9 @@ $ git push -u origin main
 ## 파일 내용 수정 후 다시 커밋하기
 
 기존 index.html 파일을 수정하고 다시 커밋하는 방법은 다음과 같습니다.
+
+![](/static/images/project2.PNG)
+
 ```bash
 $ git add index.html
 ```
@@ -126,3 +130,81 @@ $ git push origin master
 다시 깃허브로 가서 확인해 보면 커밋이 잘 된걸 확인할 수 있습니다. 커밋을 할 때 커밋 메세지를 작성하게 되는데
 커밋 메세지는 누군가 봤을 때 어떤 내용이 변경되었는지 유추할 수 있게 직관적으로 작성하는게 좋습니다. 또는 팀 내에서
 깃 컨벤션을 정하고 그 룰을 따르는것도 좋은 방법입니다.
+
+## 다른 컴퓨터에서 작업하고 커밋하기
+
+(기존 작업환경은 컴퓨터, 다른 작업환경은 노트북으로 지칭하겠습니다.) <br />
+만약 집에서 컴퓨터로 작업하던 프로젝트를 다른 컴퓨터에서 이어서 작업하고 싶을 땐 어떻게 할 수 있는지 알아보겠습니다.
+그 전에 기존 컴퓨터에서 사용하던 이름과 계정을 다른 컴퓨터에 등록시켜 줘야 합니다.
+```bash
+// 컴퓨터에서
+$ git config --list
+```
+
+![](/static/images/git6.PNG)
+
+위 명령어를 사용하여 컴퓨터에 등록된 계정 정보 중, 이름과 이메일을 확인합니다. 그리고 노트북에서 터미널을 열어 컴퓨터의 계정 정보를
+등록해줍니다.
+```bash
+// 노트북에서
+$ git config --global user.name OH
+$ git config --global user.email rudals2148@naver.com
+```
+
+![](/static/images/git7.PNG)
+
+등록했다면 다시 git config --list 명령어를 통해 잘 등록이 되었나 확인해 봅시다. 잘 등록되었다면 이제 작업하고자 하는 프로젝트가 있는
+레포지토리로 이동합니다.
+
+![](/static/images/repo4.png)
+
+코드 버튼을 눌러 원격 저장소 주소를 복사해 줍니다. 터미널에서 프로젝트를 복사할 경로로 이동한 뒤 프로젝트를 복사해 줍니다.
+```bash
+// 노트북에서
+$ git clone https://github.com/ogaeng1/git-github.git
+```
+
+![](/static/images/git8.png)
+
+클론이 됐으면 노트북에서 해당 프로젝트를 열어 작업을 해주겠습니다. html 파일을 하나 더 추가해 보겠습니다.
+
+![](/static/images/project3.png)
+
+만든 파일을 다시 원격 저장소에 커밋해 보겠습니다. 우선 클론한 프로젝트의 경로로 이동해 줍니다. 프로젝트의 경로로 왔다면
+다음과 같은 명령어를 차례로 실행합니다.
+```bash
+// 노트북에서
+$ git add date.html
+$ git commit -m "new. 오늘 날짜를 보여주는 페이지 생성"
+$ git push origin master
+```
+
+![](/static/images/git9.png)
+
+위 명령어를 입력했다면 다시 깃허브로 돌아가서 레포지토리를 확인해 보세요.
+
+![](/static/images/repo5.PNG)
+
+새롭게 만든 html 파일이 잘 커밋된걸 확인할 수 있습니다. 이렇게 기존 프로젝트를 다른 컴퓨터에서 작업하고 커밋하는 방법을
+알아보았습니다. 노트북에서 작업하고 커밋한 프로젝트는 최신버전으로 레포에 등록된 상태입니다. 하지만 기존에 작업했던
+컴퓨터에는 새로 추가된 date.html 파일이 없는 상태입니다. 따라서 기존의 컴퓨터에서 다시 작업을 해야한다면 최신 프로젝트가
+올라가 있는 레포를 pull로 받아와서 작업해야 합니다.
+
+![](/static/images/folder1.PNG)
+
+(기존 컴퓨터의 프로젝트 폴더에는 date.html 파일이 없는상태)
+
+```bash
+// 컴퓨터에서
+// 원격 저장소를 pull 해온다.
+
+$ git pull https://github.com/ogaeng1/git-github.git
+```
+
+![](/static/images/git10.PNG)
+
+풀이 완료되었다면 다시 폴더를 확인해 보세요.
+
+![](/static/images/folder2.PNG)
+
+노트북에서 새로 만들었던 date.html 파일이 잘 받아진걸 확인할 수 있습니다.
