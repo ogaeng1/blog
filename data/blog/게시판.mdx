@@ -1,8 +1,176 @@
 ---
-title: CRUD 구현해 보기
+title: 리액트와 AWS를 활용한 서버리스 만들기
 date: '2023-09-14'
-tags: ['React', '프론트엔드', 'AWS']
+tags: ['React', '프론트엔드', '서버리스', 'AWS']
 draft: false
-summary: 'CRUD를 구현해 보자'
+summary: '서버리스 애플리케이션 만들기'
 ---
 
+Amplify + Cognito를 활용한 회원가입/로그인 파트 정리!
+
+CRA를 통해 기본 프로젝트를 만들었다는 가정하에 진행합니다.
+```bash
+$ npx create-react-app practice-amplify --template typescript
+```
+
+그리고 amplify CLI를 전역에 설치해 줍니다. cli를 이용하지 않고 직접 AWS 콘솔에서 필요한 기능들을 만들 수 있지만,
+cli를 사용하면 굉장히 편리하게 셋팅이 가능합니다.
+```bash
+$ npm install -g @aws-amplify/cli
+```
+
+다음은 amplify를 설정하기 위한 단계입니다.
+```bash
+$ amplify configure
+```
+위 명령어를 입력하면 브라우저 창이 나타나는데 AWS 로그인을 해줍니다.
+
+![](/static/images/pg1.png)
+
+그 다음 IAM을 검색한 후 들어가 줍니다.
+
+![](/static/images/pg2.png)
+
+IAM 콘솔에 접속했다면 왼쪽 메뉴의 사용자를 클릭해 줍니다.
+
+![](/static/images/pg3.png)
+
+그 다음 사용자 생성을 눌러줍니다.
+
+![](/static/images/pg4.png)
+
+원하는 사용자 이름을 입력 후 다음 단계로 넘어갑니다.
+
+![](/static/images/pg5.png)
+
+권한 설정에서 직접 정책 연결을 누르고 amplify를 검색합니다. 검색된 정책 중 AdministratorAccess-Amplify 를 체크해주고 다음으로 넘어갑니다.
+
+![](/static/images/pg6.png)
+
+별다른 설정없이 사용자 생성을 해줍니다.
+
+![](/static/images/pg7.png)
+
+생성된 사용자의 이름을 클릭합니다.
+
+![](/static/images/pg8.png)
+
+보안 자격 증명 탭으로 이동 후 엑세스 키 만들기를 클릭합니다.
+
+![](/static/images/pg9.png)
+
+사진과 같이 체크 후 다음으로 넘어갑니다.
+
+![](/static/images/pg10.png)
+
+태그는 필요없으니 엑세스 키 만들기를 눌러줍니다.
+
+![](/static/images/pg11.png)
+
+그림처럼 키가 생성 되었으면 엑세스 키와 비밀 엑세스 키를 메모장 같은 곳에 복사해서 옮겨주세요. 해당 페이지에서 엑세스 키를
+저장하지 않고 완료버튼을 눌러버리면 다시는 엑세스 키를 확인할 수 없습니다. 따라서 사용자를 처음부터 다시 만들어줘야 하기 때문에
+꼭 잊지말고 복사를 잘 해줍시다.
+<br />
+![](/static/images/ter1.png)
+
+사용자 생성이 끝났으니 다시 터미널로 돌아가서 엔터를 눌러줍니다.
+
+![](/static/images/ter2.png)
+
+그러면 지역을 선택하라고 나오는데 `ap-northeast-2`를 찾아 선택해줍니다. ap-northeast-2 가 서울입니다. 지역까지 선택했다면
+다시 브라우저 창이 나타나는데 사용자 생성하는 페이지입니다. 저희는 위에서 미리 사용자를 생성했기 때문에 이 과정은 생략하고
+바로 엔터를 눌러줍니다.	그러면 엑세스 키와 비밀 엑세스 키를 입력하라고 나오는데 아까 복사해둔 키를 입력해 줍니다.
+키를 입력한 후 프로필 이름을 원하는걸로 만들어 주면 끝입니다.
+<br />
+
+## 회원가입 및 로그인을 위한 UI 설치
+
+```bash
+$ npm i aws-amplify @aws-amplify/ui-react
+```
+amplify에서 제공하는 ui를 사용하면 회원가입 및 로그인을 구현할 때 직접 코드를 구현하지 않아도 간편하게 진행할 수 있습니다.
+우선 ui를 설치만 해두고 amplify를 프로젝트에 적용시켜 줍니다.
+
+```bash
+$ amplify init
+```
+위 명령어를 입력하여 터미널에서 다음과 같은 과정을 따라해 줍니다.
+
+![](/static/images/ter3.png);
+
+프로필은 위에서 만들었던 프로필을 선택해 줍니다.
+
+![](/static/images/ter4.png)
+
+프로필을 선택하고 다음 몇가지 질문에 대답을 하면 amplify가 프로젝트에 적용됩니다.
+
+![](/static/images/list1.png)
+
+amplify가 프로젝트에 적용되었는지 확인하려면 프로젝트 구조를 살펴보세요. 성공적으로 적용이 되었다면 `amplify`폴더와 src폴더 안에
+`aws-exports.js`파일이 생성되었을 것입니다. `aws-exports.js`파일은 회원가입/로그인을 위한 사용자 증명 자격관련 내용이 담긴 파일입니다.
+amplify 폴더는 서버리스 관련 아키텍처 폴더입니다.
+<br />
+다음은 회원가입 및 로그인 기능을 추가해 주겠습니다.
+```bash
+$ amplify add auth
+```
+위 명령어를 사용하면 amplify가 Cognito를 사용할 수 있도록 구성해 줍니다.
+
+![](/static/images/ter5.png)
+
+사용자가 로그인하는 방식을 설정할 수 있는데 저는 편리하게 `username`으로만 로그인할 수 있게 구성하였습니다.
+배포를 하고 직접 회원가입과 로그인을 진행해 보겠습니다.
+
+```bash
+$ amplify push
+```
+위 명령어를 통해 배포를 해주겠습니다.
+
+![](/static/images/ter6.png)
+
+배포가 완료 되면 App 컴포넌트를 다음과 같이 수정해 줍니다.
+
+```tsx
+import { Amplify } from "aws-amplify";
+import { withAuthenticator, WithAuthenticatorProps } from "@aws-amplify/ui-react";
+import awsmobile from "./aws-exports";
+import "@aws-amplify/ui-react/styles.css";
+
+Amplify.configure(awsmobile);
+
+const App = ({ user, signOut }: WithAuthenticatorProps) => {
+	return (
+		<div>
+			<div>{user?.username}</div>
+			<button onClick={signOut}>로그아웃</button>
+		</div>
+	)
+}
+
+export default withAuthenticator(App);
+```
+
+그 다음 `npm start`로 프로젝트를 시작해 줍니다. 프로젝트를 시작하면 다음과 같은 화면이 나타나는데 우리는 아직 회원이 아니기 때문에
+회원가입을 해주겠습니다.
+
+![](/static/images/ac1.png)
+
+이메일은 실제로 내가 사용하는 이메일을 입력해 주어야 합니다. 왜냐하면 인증을 위한 코드번호가 입력한 이메일로 발송되기 때문입니다.
+
+![](/static/images/ac2.png)
+
+입력한 이메일로 가보면 다음과 같이 코드번호가 메일로 옵니다.
+
+![](/static/images/ac3.png)
+
+코드번호를 누르고 확인버튼을 누르면 회원가입이 완료됩니다. 회원가입이 완료되면 자동으로 로그인이 완료됩니다.
+
+![](/static/images/co1.png)
+
+화면에 나의 닉네임이 잘 나타난다면 성공입니다.
+
+AWS의 Cognito콘솔에 접속하여 사용자 풀을 확인해 보세요.
+
+![](/static/images/co2.png)
+
+회원가입한 유저의 정보를 확인할 수 있습니다.
