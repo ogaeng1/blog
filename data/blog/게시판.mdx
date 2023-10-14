@@ -1,12 +1,12 @@
 ---
-title: 리액트와 AWS를 활용한 서버리스 만들기
+title: 리액트와 AWS를 활용한 서버리스 애플리케이션 만들기
 date: '2023-09-14'
 tags: ['React', '프론트엔드', '서버리스', 'AWS']
 draft: false
 summary: '서버리스 애플리케이션 만들기'
 ---
 
-Amplify + Cognito를 활용한 회원가입/로그인 파트 정리!
+난해한 번역과 부족한 설명의 공식문서..직접 해보면서 작성한 AWS 삽질 기록..AWS 어렵다..
 
 CRA를 통해 기본 프로젝트를 만들었다는 가정하에 진행합니다.
 ```bash
@@ -78,7 +78,7 @@ IAM 콘솔에 접속했다면 왼쪽 메뉴의 사용자를 클릭해 줍니다.
 ![](/static/images/ter2.png)
 
 그러면 지역을 선택하라고 나오는데 `ap-northeast-2`를 찾아 선택해줍니다. ap-northeast-2 가 서울입니다. 지역까지 선택했다면
-다시 브라우저 창이 나타나는데 사용자 생성하는 페이지입니다. 저희는 위에서 미리 사용자를 생성했기 때문에 이 과정은 생략하고
+다시 브라우저 창이 나타나는데 사용자를 생성하는 페이지입니다. 위에서 미리 사용자를 생성했기 때문에 이 과정은 생략하고
 바로 엔터를 눌러줍니다.	그러면 엑세스 키와 비밀 엑세스 키를 입력하라고 나오는데 아까 복사해둔 키를 입력해 줍니다.
 키를 입력한 후 프로필 이름을 원하는걸로 만들어 주면 끝입니다.
 <br />
@@ -174,3 +174,213 @@ AWS의 Cognito콘솔에 접속하여 사용자 풀을 확인해 보세요.
 ![](/static/images/co2.png)
 
 회원가입한 유저의 정보를 확인할 수 있습니다.
+
+## DB 생성하기
+
+내가 작성한 게시글을 저장하기 위한 db를 생성해 주겠습니다.
+```bash
+$ amplify add storage
+```
+
+![](/static/images/ter9.png)
+
+다음과 같이 설정하면 db생성이 완료됩니다. DynamoDB는 AWS에서 제공하는
+서버리스 기반 NoSQL 데이터베이스입니다.
+
+## API Gateway, Lambda 함수 생성
+
+```bash
+$ amplify add api
+```
+
+![](/static/images/ter10.png)
+
+위 명령어는 cli를 활용하여 AWS Lambda함수와 API Gateway를 생성합니다. 또한
+REST API나 GraphQL중 선택할 수 있으며 그에 맞는 리소스가 생성됩니다.
+또한 `Choose the function template that you want to use` 라는 질문이 있는데
+여기서 `CRUD function for DynamoDB`와 `Serverless ExpressJS function`이라는 선택지 중 헷갈렸는데,
+CRUD 선택지는 DynamoDB 테이블에 대한 CRUD작업을 하는 서버리스 함수를 생성하는 거라고 합니다.
+ExpressJS 선택지는 REST API 경로에 대한 라우팅이 활성화 되는데 DynamoDB와 연동할 수 없지만 aws-sdk를 활용하면
+DB와 연동할 수 있다고 합니다.
+```bash
+npm install aws-sdk
+```
+
+람다함수와 API Gateway 생성이 끝났으면 다시 push를 해주면 됩니다.
+```bash
+$ amplify push
+```
+![](/static/images/ter11.png)
+
+배포가 완료되었으면 테스트를 해보겠습니다. 우선 amplify 폴더 내에 있는 람다함수가 작성되어 있는 app.js 파일을 수정해 주겠습니다.
+```js
+const AWS = require("aws-sdk");
+const docClient = new AWS.DynamoDB.DocumentClient();
+
+const express = require('express')
+const bodyParser = require('body-parser')
+const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware')
+
+// declare a new express app
+const app = express()
+app.use(bodyParser.json())
+app.use(awsServerlessExpressMiddleware.eventContext())
+
+// Enable CORS for all methods
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*")
+  res.header("Access-Control-Allow-Headers", "*")
+  next()
+});
+
+app.post("/board", function(req, res) {
+  const params = {
+    TableName: "boardtable-dev",
+    Item: {
+      user: req.body.user,
+      title: req.body.title,
+      content: req.body.content
+    }
+  }
+  docClient.put(params, function(err, data) {
+    if (err) res.json({ err })
+    else res.json({ success: "성공!" })
+  })
+})
+
+app.listen(3000, function() {
+    console.log("App started")
+});
+
+// Export the app object. When executing the application local this does nothing. However,
+// to port it to AWS Lambda we will create a wrapper around that will load the app from
+// this file
+module.exports = app
+```
+위와 같이 람다 함수를 수정하고 App.tsx 파일도 수정해 주겠습니다.
+```tsx
+import { useState } from "react";
+import { Amplify, API } from "aws-amplify";
+import { withAuthenticator, WithAuthenticatorProps } from "@aws-amplify/ui-react";
+import "@aws-amplify/ui-react/styles.css";
+import awsmobile from "./aws-exports";
+
+Amplify.configure(awsmobile);
+
+function App({ user, signOut }: WithAuthenticatorProps) {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  
+  const onAddBoard = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const data = {
+      body: {
+        user: user?.username,
+        title: title,
+        content: content
+      }
+    };
+  
+    const apiData = await API.post("boardapi", "/board", data);
+    console.log({ apiData })
+    alert("등록성공")
+  }
+  return (
+    <div>
+      <h1>{user?.username}</h1>
+      <button onClick={signOut}>로그아웃</button>
+      <form onSubmit={onAddBoard}>
+        <input type="text" placeholder="제목" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <textarea value={content} placeholder="내용" onChange={(e) => setContent(e.target.value)} />
+        <button type="submit">등록</button>
+      </form>
+    </div>
+  );
+}
+
+export default withAuthenticator(App);
+```
+
+이제 제목과 내용을 작성하고 등록을 해보겠습니다.
+
+![](/static/images/error1.png)
+
+502 Bad Gateway 에러가 출력됐습니다.. AWS 람다 콘솔에 가서 테스트를 해보았습니다.
+
+![](/static/images/error2.png)
+
+에러 내용을 살펴보니 `aws-sdk`모듈을 찾을 수 없다는 내용으로 보입니다. 분명 아까
+ExpressJS를 DynamoDB와 연동하기 위해 `aws-sdk`를 설치해줬는데 에러가 나타납니다.
+알고보니 amplify 폴더 내에서 src폴더에 있는 package.json 파일에 sdk를 추가해 주지 않아서 에러가
+발생하는 것으로 보입니다.
+
+![](/static/images/pro1.png)
+
+디펜던시에 sdk를 추가하고 다시 테스트를 해보았습니다. amplify 폴더 내의 코드를 수정하면
+다시 `amplify push`를 통해 배포를 해주어야 적용이 됩니다.
+
+![](/static/images/error3.png)
+
+이번엔 502 에러가 사라졌지만 다른 에러가 출력됩니다...무슨 내용인가 살펴보니 대충 
+`AccessDeniedException`와 에러 메세지 `User: arn:aws:sts::736167354321:assumed-role/practiceamplifyLambdaRole8d91e38e-dev/boardfunction-dev is not authorized to perform: dynamodb:PutItem on resource: arn:aws:dynamodb:ap-northeast-2:736167354321:table/boardtable because no identity-based policy allows the dynamodb:PutItem action`
+가 눈에 띕니다. dynamodb에 접근할 권한이 없다는 걸로 추측됩니다..
+
+![](/static/images/error4.png)
+
+IAM 콘솔로 이동 후 역할 탭에서 에러 콘솔에 찍힌 이름과 같은이름을 가진 역할을 클릭해 줍니다. 권한 정책에서 `AmazonDynamoDBFullAccess` 권한을
+부여해 줍니다. AmazonDynamoDBFullAccess는 DynamoDB에 대한 전체 엑세스 권한을 부여한다는 의미인데 이 방법이 빠르게 문제를 해결할 순 있지만
+보안상의 이유로 권장되는 정책은 아니라고 합니다.. 우선은 위 권한을 이용해 DynamoDB에 접근해 보도록 하겠습니다. DB접근 권한을 부여했으니 다시한번
+테스트를 해보겠습니다.
+
+![](/static/images/error5.png)
+
+이번엔 db접근 권한 문제가 아닌 다른 문제가 발생했습니다. `Requested resource not found`에러.. 요청 리소스를 찾을 수 없다는 내용인듯 합니다..
+주로 DB테이블이나 다른 리소스를 찾을 수 없을 때 발생한다고 하는데 람다 함수를 다시 살펴보겠습니다.
+```js
+app.post("/board", function(req, res) {
+  const params = {
+    TableName: "boardtable",
+    Item: {
+      user: req.body.user,
+      title: req.body.title,
+      content: req.body.content
+    }
+  }
+  docClient.put(params, function(err, data) {
+    if (err) res.json({ err })
+    else res.json({ success: "성공!" })
+  })
+})
+```
+post 요청 부분인데 table 명이 제가 처음 amplify add storage로 db를 생성할 때 생성한 이름인 `boardtable`로 되어있습니다. 그런데 AWS-DynamoDB 콘솔에서
+테이블을 확인해 보면
+
+![](/static/images/error6.png)
+
+`boardtable-dev`로 되어있는걸 확인할 수 있습니다. 분명 `boardtable`로 생성했는데 왜 dev가 붙었는지는 잘 모르겠습니다.. 혹시하는 마음에
+람다 함수 테이블명을 dev로 변경한 뒤 다시 push를 하고 테스트를 해보았습니다.
+```js
+app.post("/board", function(req, res) {
+  const params = {
+    TableName: "boardtable-dev",
+    Item: {
+      user: req.body.user,
+      title: req.body.title,
+      content: req.body.content
+    }
+  }
+  docClient.put(params, function(err, data) {
+    if (err) res.json({ err })
+    else res.json({ success: "성공!" })
+  })
+})
+```
+
+![](/static/images/suc3.png)
+
+이번엔 성공이 출력됩니다. db에 내가 작성한 데이터가 잘 등록되었는지 확인해 보겠습니다.
+
+![](/static/images/suc2.png)
+
+유저명, 제목, 내용이 잘 등록된걸 확인할 수 있습니다. 여기까지 Amplify, Cognito, Lambda, API Gateway, DynamoDB를 활용한
+회원가입/로그인 및 db에 데이터 저장이였습니다.
