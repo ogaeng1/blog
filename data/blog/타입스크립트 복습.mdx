@@ -1,0 +1,136 @@
+---
+title: 타입스크립트 복습
+date: '2023-10-29'
+tags: ['TypeScript']
+draft: false
+summary: '타입스크립트 복습하기'
+---
+
+### 기본 타입(primitive types)
+
+> * number
+> * string
+> * boolean
+> * array
+> * object
+> * null
+> * undefined
+
+```ts
+const num: number = 1
+const str: string = "문자열"
+const bool: boolean = true
+const obj: { name: string, age: number } = { name: "이름", age: 1 }
+```
+
+null과 undefined은 자주 사용되진 않으니 생략. <br />
+배열은 안에 들어갈 요소들의 타입 지정이 가능합니다.
+```ts
+const arr: number[] = [1, 2, 3]
+const arr: string[] = ["사과", "배", "포도"]
+
+// 이런 경우는 에러발생
+const arr: number[] = [1, "2", 3]
+```
+
+하지만 변수명 옆에 굳이 타입을 지정하지 않아도 타입스크립트는 알아서 타입을 유추해줍니다.
+
+```ts
+const num = 1;
+const str = "문자열";
+const bool = true;
+const arr = [1, 2, 3]
+const obj = {
+	name: "이름",
+	age: 1
+}
+```
+따라서 이런 경우에는 에러가 발생하지 않습니다.
+<br />
+
+### 유니온 타입(union type)
+선언한 변수에 number가 들어올 수도 있고, string도 들어올 수 있다면 유니온 타입을 사용합니다.
+```ts
+const 숫자: number | string = 1
+const 문자: number | string = "문자"
+```
+OR 연산자 같은 `|` 기호를 사용합니다.
+
+만약 숫자만 들어올 수 있는 배열에 문자 요소가 포함된 경우는 다음과 같이 활용할 수 있습니다.
+```ts
+// 에러 발생
+const arr: number[] = [1, "2", 3]
+
+// 유니온 타입 적용 (정상 동작)
+const arr: (number | string)[] = [1, "2", 3]
+```
+
+객체 형태에서는 다음과 같이 활용할 수 있습니다.
+```ts
+const obj: { name: string | number } = {
+	name: 1
+}
+```
+```code
+! 알아두기
+타입스크립트에서 변수에 타입이 명시적으로 할당되어 있다면 해당 변수는 다른 타입으로 할당할 수 없습니다.
+만약 string | number 와 같은 유니온 타입은 string이나 number로 재할당할 수 없습니다.
+이유는 타입스크립트의 타입 안정성 보장을 위해서 인데, number타입, string타입 등 이러한 타입과 같이
+string | number 와 같은 유니온 타입도 결국 하나의 타입으로 취급하기 때문입니다.
+```
+<br />
+
+### any 타입
+
+any 타입은 어떠한 값을 넣을 수 있도록 허용하는 타입입니다.
+```ts
+let 아무거나: any = 1;
+아무거나 = "문자";
+아무거나 = [1,2,3];
+아무거나 = {
+	name: "이름"
+};
+```
+이렇게 작성한 코드도 에러가 발생하지 않습니다. 하지만 편하다고 해서 any타입을 남발해서 사용하면 안됩니다.
+타입관련 버그가 발생하면 어떤 이유인지 추적이 어렵고, any타입을 사용하면 타입스크립트의 이점이 사라집니다.
+변수 타입체크를 해제한 뒤 작업을 해야하는 경우가 아니라면 사용을 지양해야 합니다.
+<br />
+
+### unknown 타입
+
+unknown 타입도 any 타입과 마찬가지로 모든 타입을 넣어서 사용할 수 있습니다.
+```ts
+let 아무거나: unknown = 1;
+아무거나 = "문자";
+아무거나 = [1,2,3];
+아무거나 = {
+	name: "이름"
+};
+```
+
+그렇다면 any타입과 unknown타입은 어떤 차이가 있을까요?
+```ts
+// 에러가 발생하지 않음
+let 변수: any;
+
+let 숫자: number = 변수;
+let 문자: string = 변수;
+let 불린: boolean = 변수;
+```
+```ts
+// 에러 발생
+let 변수: unknown;
+
+let 숫자: number = 변수;
+let 문자: string = 변수;
+let 불린: boolean = 변수;
+```
+
+> * any
+
+타입스크립트에서 타입 검사를 무효화합니다. any타입의 변수는 어떤 타입의 값이든 할당이 가능합니다.
+즉, 해당 변수를 사용할 때 타입스크립트는 컴파일 시에 타입 검사를 하지 않습니다.
+> * unknown
+
+any타입보다 타입 안정성을 제공합니다. unknown 타입으로 변수를 정의하면 컴파일러에게 
+변수의 타입이 unknown이라 어떤 값이든 올 수 있기 때문에 타입을 엄격하게 검사하라고 요청하는 의미를 가집니다.
